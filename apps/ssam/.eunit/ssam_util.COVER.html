@@ -1,0 +1,248 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_util.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_util.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_util).
+        |  
+        |  -export([
+        |  		 to_lower/1,
+        |  		 to_upper/1,
+        |  		 char_to_utf8/1,
+        |  		 utf8_to_bin/1,
+        |  		 hmac_sha1/2, hmac_sha1/3,
+        |  		 throw_if/2,
+        |  		 now_sec/0,
+        |  		 now_mic/0,
+        |  		 now_format/1, now_format/2,
+        |  		 sha/1,
+        |  		 unique_bin/0,
+        |  		 unique_id/0, unique_id/1,
+        |  		 unique_base64/0,
+        |  		 intbin2hex/1,
+        |  		 hex2intbin/1,
+        |  		 next_item/2,
+        |  		 keygen/1, keygen/2,
+        |  		 updated_props/2,
+        |  		 is_expired/2,
+        |  		 cidr_network_ip4/2,
+        |  		 cidr_netmask_ip4/1,
+        |  		 check_cidr/2,
+        |  		 template_compiled/2, template_compiled/3,
+        |  		 nonce/1,
+        |  		 combined/1
+        |  		]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  
+        |  %% Public functions
+        |  
+        |  to_lower(Bits) -&gt;
+<font color=red>     0..|  	&lt;&lt; &lt;&lt;(case X of X when X &gt;= $A, X =&lt; $Z -&gt; X+($a-$A); X -&gt; X end)&gt;&gt;</font>
+<font color=red>     0..|  	   || &lt;&lt;X&gt;&gt; &lt;= Bits &gt;&gt;.</font>
+        |  
+        |  to_upper(Bits) -&gt;
+<font color=red>     0..|  	&lt;&lt; &lt;&lt;(case X of X when X &gt;= $a, X =&lt; $z -&gt; X+($A-$a); X -&gt; X end)&gt;&gt;</font>
+<font color=red>     0..|  	   || &lt;&lt;X&gt;&gt; &lt;= Bits &gt;&gt;.</font>
+        |  
+        |  char_to_utf8(Chars) -&gt;
+<font color=red>     0..|  	unicode:characters_to_list(Chars, utf8).</font>
+        |  
+        |  utf8_to_bin(Chars) -&gt;
+<font color=red>     0..|  	unicode:characters_to_binary(Chars).</font>
+        |  
+        |  hmac_sha1(Key, Data) -&gt;
+<font color=red>     0..|  	crypto:hmac(sha, Key, Data).</font>
+        |  
+        |  hmac_sha1(Key, Data, base64) -&gt;
+<font color=red>     0..|  	base64:encode(hmac_sha1(Key, Data)).</font>
+        |  
+        |  throw_if(Expr, Reason) -&gt;
+<font color=red>     0..|  	if Expr -&gt; throw(Reason); true -&gt; ok end.</font>
+        |  
+        |  now_sec() -&gt;
+     3..|  	{Mega, Sec, _Micro} = os:timestamp(),
+     3..|  	Mega * 1000000 + Sec.
+        |  
+        |  now_mic() -&gt;
+<font color=red>     0..|  	{Mega, Sec, Micro} = os:timestamp(),</font>
+<font color=red>     0..|  	(Mega * 1000000 + Sec) * 1000000 + Micro.</font>
+        |  
+        |  now_format(Format, Values) -&gt;
+<font color=red>     0..|  	list_to_binary(io_lib:format(Format, Values)).</font>
+        |  
+        |  now_format(yyyymmdd) -&gt;
+<font color=red>     0..|  	{YY, MM, DD} = erlang:date(),</font>
+<font color=red>     0..|  	now_format("~b~2..0b~2..0b", [YY, MM, DD]);</font>
+        |  now_format(hhmmss) -&gt;
+<font color=red>     0..|  	{HH, MM, SS} = erlang:time(),</font>
+<font color=red>     0..|  	now_format("~2..0b~2..0b~2..0b", [HH, MM, SS]).</font>
+        |  
+        |  sha(Bin) when is_binary(Bin) -&gt;
+<font color=red>     0..|  	BinHash = crypto:hash(sha, Bin),</font>
+<font color=red>     0..|  	list_to_binary([io_lib:format("~2.16.0b", [C]) || &lt;&lt;C&gt;&gt; &lt;= BinHash]);</font>
+        |  sha(Str) when is_list(Str) -&gt;
+<font color=red>     0..|  	BinHash = crypto:hash(sha, Str),</font>
+<font color=red>     0..|  	lists:flatten([io_lib:format("~2.16.0b", [C]) || &lt;&lt;C&gt;&gt; &lt;= BinHash]).</font>
+        |  
+        |  unique_id(Prefix) when is_binary(Prefix) -&gt;
+<font color=red>     0..|  	&lt;&lt;_, Id/bits&gt;&gt; = unique_id(),</font>
+<font color=red>     0..|  	&lt;&lt;Prefix/bits, Id/bits&gt;&gt;.</font>
+        |  
+        |  unique_id() -&gt;
+<font color=red>     0..|  	Bin = unique_bin(),</font>
+        |  	%lists:flatten([io_lib:format("~2.16.0b", [C]) || &lt;&lt;C&gt;&gt; &lt;= Bin]). %% to string
+<font color=red>     0..|  	intbin2hex(Bin).</font>
+        |  
+        |  unique_bin() -&gt;
+<font color=red>     0..|  	Now = &lt;&lt;(now_mic()):56&gt;&gt;,</font>
+<font color=red>     0..|  	Node = &lt;&lt;(erlang:phash2(node())):32&gt;&gt;,</font>
+<font color=red>     0..|  	Rand = crypto:rand_bytes(5),</font>
+<font color=red>     0..|  	&lt;&lt;Now/binary, Node/binary, Rand/binary&gt;&gt;. %% 128bits binary</font>
+        |  
+        |  unique_base64() -&gt;
+<font color=red>     0..|  	base64:encode(unique_bin()).</font>
+        |  
+        |  intbin2hex(Bin) -&gt;
+<font color=red>     0..|  	list_to_binary([io_lib:format("~2.16.0b", [C]) || &lt;&lt;C&gt;&gt; &lt;= Bin]).</font>
+        |  
+        |  hex2intbin(HexaBin) -&gt;
+<font color=red>     0..|  	case catch &lt;&lt;(binary_to_integer(HexaBin, 16)):(trunc(size(HexaBin)/2*8))&gt;&gt; of</font>
+<font color=red>     0..|  		{'EXIT', {badarg, _}} -&gt; &lt;&lt;&gt;&gt;;</font>
+<font color=red>     0..|  		Bin -&gt; Bin</font>
+        |  	end.
+        |  	%&lt;&lt; &lt;&lt;(binary_to_integer(X, 16))/integer&gt;&gt; || &lt;&lt;X:16/bits&gt;&gt; &lt;= HexaBin &gt;&gt; %% too slow
+        |  
+<font color=red>     0..|  next_item(_, []) -&gt; [];</font>
+<font color=red>     0..|  next_item(Item, [Item| []]) -&gt; [];</font>
+        |  next_item(Item, List) -&gt;
+<font color=red>     0..|  	case lists:dropwhile(fun(X) -&gt; X =/= Item end, List) of</font>
+<font color=red>     0..|  		[_ | []] -&gt; lists:nth(1, List);</font>
+<font color=red>     0..|  		[_ | Tail] -&gt; lists:nth(1, Tail);</font>
+<font color=red>     0..|  		[] -&gt; lists:nth(1, List)</font>
+        |  	end.
+        |  
+        |  keygen(List) -&gt;
+<font color=red>     0..|  	keygen(List, ?DELIMITER).</font>
+        |  
+        |  keygen([H | T], Delimiter) -&gt;
+<font color=red>     0..|  	keygen(T, Delimiter, H).</font>
+        |  
+<font color=red>     0..|  keygen([], _, Output) -&gt; Output;</font>
+        |  keygen([H | T], Delimiter, Output) -&gt;
+<font color=red>     0..|  	Output1 = &lt;&lt;Output/bits, Delimiter, H/bits&gt;&gt;,</font>
+<font color=red>     0..|  	keygen(T, Delimiter, Output1).</font>
+        |  
+        |  
+        |  updated_props(OldProps, NewProps) when is_list(OldProps),
+        |  									  is_list(NewProps) -&gt;
+        |  	lists:foldl(
+        |  	  fun({N, _}, OldProps1) -&gt;
+<font color=red>     0..|  			  proplists:delete(N, OldProps1)</font>
+        |  	  end, OldProps, NewProps
+<font color=red>     0..|  	 ) ++ NewProps.</font>
+        |  
+<font color=red>     0..|  is_expired(_, ?forever) -&gt; false;</font>
+<font color=red>     0..|  is_expired(_, ?infinite) -&gt; false;</font>
+        |  is_expired(Timestamp, TTL) -&gt;
+     1..|  	(Timestamp + TTL &lt; now_sec()).
+        |  
+        |  cidr_network_ip4({I1, I2, I3, I4}, Bits) when is_integer(Bits), Bits =&lt; 32 -&gt;
+<font color=red>     0..|      ZeroBits = 8 - (Bits rem 8),</font>
+<font color=red>     0..|      Last = (16#ff bsr ZeroBits) bsl ZeroBits,</font>
+<font color=red>     0..|      case (Bits div 8) of</font>
+<font color=red>     0..|          0 -&gt; {(I1 band Last), 0, 0, 0};</font>
+<font color=red>     0..|          1 -&gt; {I1, (I2 band Last), 0, 0};</font>
+<font color=red>     0..|          2 -&gt; {I1, I2, (I3 band Last), 0};</font>
+<font color=red>     0..|          3 -&gt; {I1, I2, I3, (I4 band Last)};</font>
+<font color=red>     0..|          4 -&gt; {I1, I2, I3, I4}</font>
+        |      end.
+        |  
+        |  cidr_netmask_ip4(Bits) when is_integer(Bits), Bits =&lt; 32 -&gt;
+<font color=red>     0..|      ZeroBits = 8 - (Bits rem 8),</font>
+<font color=red>     0..|      Last = (16#ff bsr ZeroBits) bsl ZeroBits,</font>
+<font color=red>     0..|      case (Bits div 8) of</font>
+<font color=red>     0..|          0 -&gt; {(255 band Last), 0, 0, 0};</font>
+<font color=red>     0..|          1 -&gt; {255, (255 band Last), 0, 0};</font>
+<font color=red>     0..|          2 -&gt; {255, 255, (255 band Last), 0};</font>
+<font color=red>     0..|          3 -&gt; {255, 255, 255, (255 band Last)};</font>
+<font color=red>     0..|          4 -&gt; {255, 255, 255, 255}</font>
+        |      end.
+        |  
+        |  check_cidr(SourceIp, {FilterIp, Bits}) -&gt;
+<font color=red>     0..|  	cidr_network_ip4(SourceIp, Bits) =:=</font>
+        |  	cidr_network_ip4(FilterIp, Bits).
+        |  
+        |  
+<font color=red>     0..|  template_compiled([], Subject, _) -&gt; Subject;</font>
+        |  template_compiled([[Matched] | Tail], Subject, DicProps) -&gt;
+<font color=red>     0..|  	DestVal = proplists:get_value(Matched, DicProps, ""),</font>
+<font color=red>     0..|  	Subject1 = re:replace(Subject,</font>
+        |  						  "\\{\\{" ++ Matched ++ "\\}\\}",
+        |  						  DestVal,
+        |  						  [global, unicode, {return, list}]),
+<font color=red>     0..|  	template_compiled(Tail, Subject1, DicProps).</font>
+        |  
+        |  template_compiled(Subject, DicProps) -&gt;
+<font color=red>     0..|  	Regex = "\\{\\{([^\\{\\}]+)\\}\\}",</font>
+<font color=red>     0..|  	case re:run(Subject, Regex, [global, unicode, {capture, [1], list}]) of</font>
+        |  		{match, MatchedL} -&gt;
+<font color=red>     0..|  			template_compiled(MatchedL, Subject, DicProps);</font>
+<font color=red>     0..|  		nomatch -&gt; Subject </font>
+        |  	end.
+        |  
+        |  nonce(Length) -&gt;
+<font color=red>     0..|  	list_to_binary(</font>
+<font color=red>     0..|  	  [random:uniform(94) + 32 || _ &lt;- lists:seq(1, Length)]</font>
+        |  	).
+        |  
+        |  combined(List) -&gt;
+<font color=red>     0..|  	combined(List, ?DELIMITER).</font>
+        |  
+        |  combined([H | T], Delimiter) -&gt;
+<font color=red>     0..|  	combined(T, Delimiter, H).</font>
+        |  
+<font color=red>     0..|  combined([], _, Output) -&gt; Output;</font>
+        |  combined([H | T], Delimiter, Output) -&gt;
+<font color=red>     0..|  	Output1 = &lt;&lt;Output/bits, Delimiter, H/bits&gt;&gt;,</font>
+<font color=red>     0..|  	combined(T, Delimiter, Output1).</font>
+        |  
+        |  
+        |  
+        |  %% Private functions
+        |  %%
+        |  
+        |  
+        |  
+        |  
+        |  %% Tests
+        |  %%
+        |  -ifdef(TEST_).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  -endif.
+</pre>
+</body>
+</html>

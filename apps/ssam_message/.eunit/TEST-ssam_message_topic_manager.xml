@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite tests="2" failures="0" errors="1" skipped="0" time="0.007" name="module 'ssam_message_topic_manager'">
+  <testcase time="0.002" name="ssam_message_topic_manager:tests/1_0" description="server_pid"/>
+  <testcase time="0.000" name="ssam_message_topic_manager:tests/1_0" description="handle_request(subscribe)">
+    <error type="exit">
+::in function gen_server:call/2 (gen_server.erl, line 180)
+in call from ssam_message_topic_manager:state_subscribe/2 (src/ssam_message_topic_manager.erl, line 87)
+in call from ssam_message_topic_manager:'-tests/1-fun-2-'/0 (src/ssam_message_topic_manager.erl, line 140)
+**exit:{noproc,
+    {gen_server,call,
+        [&lt;0.722.0&gt;,
+         {&lt;&lt;"topic"&gt;&gt;,
+          {subscribe,
+              {topic_request,&lt;&lt;"reqid"&gt;&gt;,&lt;&lt;"sid"&gt;&gt;,subscribe,undefined,
+                  undefined,
+                  {topic,&lt;&lt;"topic"&gt;&gt;,undefined,undefined,0,[]},
+                  {topic_subpid,pid,no,&lt;0.1005.0&gt;,&lt;&lt;"cursor"&gt;&gt;,0,0,[]},
+                  undefined}}}]}}
+    </error>
+    <system-out>
+    </system-out>
+  </testcase>
+</testsuite>

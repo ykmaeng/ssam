@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_storage_bucket_resource.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_storage/.eunit/ssam_storage_bucket_resource.erl by COVER 2014-10-07 at 16:20:10
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_storage_bucket_resource).
+        |  
+        |  -export([get/2,
+        |  		 put/2,
+        |  		 post/2]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_storage.hrl").
+        |  
+        |  %% @todo Reduce the logic of state functions
+        |  
+        |  %% Publics
+        |  
+        |  post(#request{
+        |  	   uri = [&lt;&lt;"buckets"&gt;&gt;, Bucket, &lt;&lt;"keys"&gt;&gt;],
+        |  	   id = ReqId, account_sid = Sid
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+        |  	%{Type, SubType, _Param} = Request#request.content_type,
+        |  	%ContentType = &lt;&lt;Type/bits, $/, SubType/bits&gt;&gt;,
+<font color=red>     0..|  	ContentType = Request#request.content_type, </font>
+<font color=red>     0..|  	Body = Request#request.body,</font>
+<font color=red>     0..|  	case ssam_storage:post_buckets_key(Sid, Bucket, ReqId, ContentType, Body) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(?STATUS_CREATED, Request)};</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Reason, Request)}</font>
+        |  	end.
+        |  
+        |  get(#request{
+        |  	   uri = [&lt;&lt;"buckets"&gt;&gt;, Bucket, &lt;&lt;"keys"&gt;&gt;, Key],
+        |  	   account_sid = Sid
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_storage:get_buckets_key(Sid, Bucket, Key) of</font>
+        |  		{ok, {Type, Body}} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response_type(Type, Body, Request)};</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Reason, Request)}</font>
+        |  	end.
+        |  
+        |  put(#request{
+        |  	   uri = [&lt;&lt;"buckets"&gt;&gt;, Bucket, &lt;&lt;"keys"&gt;&gt;, Key],
+        |  	   account_sid = Sid
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:put -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	Type = Request#request.content_type,</font>
+<font color=red>     0..|  	Body = Request#request.body,</font>
+<font color=red>     0..|  	case ssam_storage:put_buckets_key(Sid, Bucket, Key, Type, Body) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end.
+        |  
+        |  %% Privates
+        |  
+</pre>
+</body>
+</html>

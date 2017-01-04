@@ -1,0 +1,10 @@
+{application,ssam_account,
+             [{description,[]},
+              {vsn,"0.1.0"},
+              {registered,[]},
+              {applications,[kernel,stdlib]},
+              {mod,{ssam_account_app,[]}},
+              {env,[]},
+              {modules,[ssam_account,ssam_account_app,ssam_account_sup,
+                        ssam_account_user_handler,
+                        ssam_account_user_resource]}]}.

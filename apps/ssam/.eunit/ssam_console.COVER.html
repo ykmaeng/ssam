@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_console.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_console.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% @doc Interface for ssam-admin commands.
+        |  -module(ssam_console).
+        |  -export([join/1,
+        |           leave/1,
+        |           remove/1,
+        |           ringready/1]).
+        |  
+        |  join([NodeStr]) -&gt;
+<font color=red>     0..|      try riak_core:join(NodeStr) of</font>
+        |          ok -&gt;
+<font color=red>     0..|              io:format("Sent join request to ~s\n", [NodeStr]),</font>
+<font color=red>     0..|              ok;</font>
+        |          {error, not_reachable} -&gt;
+<font color=red>     0..|              io:format("Node ~s is not reachable!\n", [NodeStr]),</font>
+<font color=red>     0..|              error;</font>
+        |          {error, different_ring_sizes} -&gt;
+<font color=red>     0..|              io:format("Failed: ~s has a different ring_creation_size~n",</font>
+        |                        [NodeStr]),
+<font color=red>     0..|              error</font>
+        |      catch
+        |          Exception:Reason -&gt;
+<font color=red>     0..|              lager:error("Join failed ~p:~p", [Exception, Reason]),</font>
+<font color=red>     0..|              io:format("Join failed, see log for details~n"),</font>
+<font color=red>     0..|              error</font>
+        |      end.
+        |  
+        |  leave([]) -&gt;
+<font color=red>     0..|      remove_node(node()).</font>
+        |  
+        |  remove([Node]) -&gt;
+<font color=red>     0..|      remove_node(list_to_atom(Node)).</font>
+        |  
+        |  remove_node(Node) when is_atom(Node) -&gt;
+<font color=red>     0..|      try catch(riak_core:remove_from_cluster(Node)) of</font>
+        |          {'EXIT', {badarg, [{erlang, hd, [[]]}|_]}} -&gt;
+        |              %% This is a workaround because
+        |              %% riak_core_gossip:remove_from_cluster doesn't check if
+        |              %% the result of subtracting the current node from the
+        |              %% cluster member list results in the empty list. When
+        |              %% that code gets refactored this can probably go away.
+<font color=red>     0..|              io:format("Leave failed, this node is the only member.~n"),</font>
+<font color=red>     0..|              error;</font>
+        |          Res -&gt;
+<font color=red>     0..|              io:format(" ~p\n", [Res])</font>
+        |      catch
+        |          Exception:Reason -&gt;
+<font color=red>     0..|              lager:error("Leave failed ~p:~p", [Exception, Reason]),</font>
+<font color=red>     0..|              io:format("Leave failed, see log for details~n"),</font>
+<font color=red>     0..|              error</font>
+        |      end.
+        |  
+        |  -spec(ringready([]) -&gt; ok | error).
+        |  ringready([]) -&gt;
+<font color=red>     0..|      try riak_core_status:ringready() of</font>
+        |          {ok, Nodes} -&gt;
+<font color=red>     0..|              io:format("TRUE All nodes agree on the ring ~p\n", [Nodes]);</font>
+        |          {error, {different_owners, N1, N2}} -&gt;
+<font color=red>     0..|              io:format("FALSE Node ~p and ~p list different partition owners\n",</font>
+        |                        [N1, N2]),
+<font color=red>     0..|              error;</font>
+        |          {error, {nodes_down, Down}} -&gt;
+<font color=red>     0..|              io:format("FALSE ~p down.  All nodes need to be up to check.\n",</font>
+        |                        [Down]),
+<font color=red>     0..|              error</font>
+        |      catch
+        |          Exception:Reason -&gt;
+<font color=red>     0..|              lager:error("Ringready failed ~p:~p", [Exception, Reason]),</font>
+<font color=red>     0..|              io:format("Ringready failed, see log for details~n"),</font>
+<font color=red>     0..|              error</font>
+        |      end.
+</pre>
+</body>
+</html>

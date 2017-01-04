@@ -1,0 +1,294 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_telephony.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_telephony/.eunit/ssam_telephony.erl by COVER 2014-10-07 at 16:20:12
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_telephony).
+        |  
+        |  -compile(export_all).
+        |  %-export([secure_password/3]).
+        |  
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_telephony.hrl").
+        |  
+        |  
+        |  %% Callback functions
+        |  
+        |  configs() -&gt;
+<font color=red>     0..|  	File = code:priv_dir(ssam_telephony) ++ "/conf/ssam_telephony.conf",</font>
+<font color=red>     0..|  	case file:consult(File) of</font>
+<font color=red>     0..|  		{ok, Props} -&gt; Props;</font>
+<font color=red>     0..|  		{error, _} -&gt; []</font>
+        |  	end.
+        |  
+        |  routes() -&gt;
+<font color=red>     0..|  	case proplists:get_value(routes, configs()) of</font>
+<font color=red>     0..|  		?undefined -&gt; [];</font>
+<font color=red>     0..|  		Routes -&gt; Routes</font>
+        |  	end.
+        |  
+        |  %% Public functions
+        |  
+        |  secure_password(UserId, Domain, Pw) when is_list(UserId),
+        |  										 is_list(Domain),
+        |  										 is_list(Pw) -&gt;
+<font color=red>     0..|  	ssam_util:md5(UserId ++ ":" ++ Domain ++ ":" ++ Pw);</font>
+        |  secure_password(UserId, Domain, Pw) when is_binary(UserId),
+        |  										 is_binary(Domain),
+        |  										 is_binary(Pw) -&gt;
+<font color=red>     0..|  	ssam_util:md5(&lt;&lt;UserId/bitstring, ":", Domain/bitstring, ":", Pw/bitstring&gt;&gt;).</font>
+        |  
+        |  
+        |  %% GET domain resources
+        |  
+        |  get_account_sid(DomainId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}],</font>
+<font color=red>     0..|  	case ssam_resource:get(DomainId, ?SERVICE, Uri) of</font>
+        |  		{ok, DomainGlobal} -&gt;
+<font color=red>     0..|  			{ok, ssam_objects:value(&lt;&lt;"account_sid"&gt;&gt;, DomainGlobal, &lt;&lt;&gt;&gt;)};</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  get_global_domain(DomainId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}],</font>
+<font color=red>     0..|  	case ssam_resource:get(DomainId, ?SERVICE, Uri) of</font>
+<font color=red>     0..|  		{ok, [Domain]} -&gt; {ok, Domain};</font>
+<font color=red>     0..|  		{ok, Domain} -&gt; {ok, Domain};</font>
+<font color=red>     0..|  		Error -&gt; Error</font>
+        |  	end.
+        |  
+        |  get_domains(AccountSid) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, []}],</font>
+<font color=red>     0..|  	case ssam_resource:get(AccountSid, ?SERVICE, Uri) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			{ok, Doc};</font>
+        |  		{?error, {?invalid_collection_name, _, _}} -&gt;
+<font color=red>     0..|  			{ok, []};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, Error}</font>
+        |  	end.
+        |  
+        |  get_domain(AccountSid, DomainId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}],</font>
+<font color=red>     0..|  	ssam_resource:get(AccountSid, ?SERVICE, Uri).</font>
+        |  
+        |  get_domain(DomainId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}],</font>
+<font color=red>     0..|  	case get_account_sid(DomainId) of</font>
+        |  		{ok, AccountSid} -&gt;
+<font color=red>     0..|  			ssam_resource:get(AccountSid, ?SERVICE, Uri);</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  get_domains_users(AccountSid, DomainId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"users"&gt;&gt;, []}],</font>
+<font color=red>     0..|  	ssam_resource:get(AccountSid, ?SERVICE, Uri).</font>
+        |  
+        |  get_domains_users(DomainId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"users"&gt;&gt;, []}],</font>
+<font color=red>     0..|  	case get_account_sid(DomainId) of</font>
+        |  		{ok, AccountSid} -&gt;
+<font color=red>     0..|  			ssam_resource:get(AccountSid, ?SERVICE, Uri);</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  get_domains_user(AccountSid, DomainId, UserId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"users"&gt;&gt;, UserId}],</font>
+<font color=red>     0..|  	ssam_resource:get(AccountSid, ?SERVICE, Uri).</font>
+        |  
+        |  get_domains_user(DomainId, UserId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"users"&gt;&gt;, UserId}],</font>
+<font color=red>     0..|  	case get_account_sid(DomainId) of</font>
+        |  		{ok, AccountSid} -&gt;
+<font color=red>     0..|  			ssam_resource:get(AccountSid, ?SERVICE, Uri);</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  get_domain_user(DomainId, UserId) -&gt;
+<font color=red>     0..|  	case get_domain(DomainId) of</font>
+        |  		{ok, Domain} -&gt;
+<font color=red>     0..|  			Users = ssam_objects:value(&lt;&lt;"users"&gt;&gt;, Domain, []),</font>
+<font color=red>     0..|  			User = ssam_objects:object(&lt;&lt;"id"&gt;&gt;, UserId, Users),</font>
+<font color=red>     0..|  			{ok, Domain, User};</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  get_domains_gateways(AccountSid, DomainId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"gateways"&gt;&gt;, []}],</font>
+<font color=red>     0..|  	ssam_resource:get(AccountSid, ?SERVICE, Uri).</font>
+        |  
+        |  get_domains_gateways(DomainId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"gateways"&gt;&gt;, []}],</font>
+<font color=red>     0..|  	case get_account_sid(DomainId) of</font>
+        |  		{ok, AccountSid} -&gt;
+<font color=red>     0..|  			ssam_resource:get(AccountSid, ?SERVICE, Uri);</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  get_domains_gateway(AccountSid, DomainId, GatewayId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"gateways"&gt;&gt;, GatewayId}],</font>
+<font color=red>     0..|  	ssam_resource:get(AccountSid, ?SERVICE, Uri).</font>
+        |  
+        |  get_domains_gateway(DomainId, GatewayId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"gateways"&gt;&gt;, GatewayId}],</font>
+<font color=red>     0..|  	case get_account_sid(DomainId) of</font>
+        |  		{ok, AccountSid} -&gt;
+<font color=red>     0..|  			ssam_resource:get(AccountSid, ?SERVICE, Uri);</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  get_domain_gateway(DomainId, GatewayId) -&gt;
+<font color=red>     0..|  	case get_domain(DomainId) of</font>
+        |  		{ok, Domain} -&gt;
+<font color=red>     0..|  			Gateways = ssam_objects:value(&lt;&lt;"gateways"&gt;&gt;, Domain, []),</font>
+<font color=red>     0..|  			GW = ssam_objects:object(&lt;&lt;"id"&gt;&gt;, GatewayId, Gateways),</font>
+<font color=red>     0..|  			{ok, Domain, GW};</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  %% POST domain resources
+        |  
+        |  post_global_domain(AccountSid, DomainId) -&gt;
+<font color=red>     0..|  	Props = [{&lt;&lt;"id"&gt;&gt;, DomainId},</font>
+        |  			 {&lt;&lt;"account_sid"&gt;&gt;, AccountSid}],
+<font color=red>     0..|  	ssam_resource:post(DomainId, ?SERVICE, [{&lt;&lt;"domains"&gt;&gt;, []}], {Props}).</font>
+        |  
+        |  
+        |  post_domain(AccountSid, Props) -&gt;
+<font color=red>     0..|  	DomainId = proplists:get_value(&lt;&lt;"id"&gt;&gt;, Props),</font>
+<font color=red>     0..|  	case post_global_domain(AccountSid, DomainId) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			Props1 = ssam_objects:list_deleted(</font>
+        |  					   [&lt;&lt;"dial-string"&gt;&gt;, &lt;&lt;"users"&gt;&gt;, &lt;&lt;"groups"&gt;&gt;, &lt;&lt;"gateways"&gt;&gt;],
+        |  					   Props),		
+<font color=red>     0..|  			Props2 = Props1 ++ [{&lt;&lt;"users"&gt;&gt;, []},</font>
+        |  								{&lt;&lt;"groups"&gt;&gt;, []},
+        |  								{&lt;&lt;"gateways"&gt;&gt;, []}],
+<font color=red>     0..|  			ssam_resource:post(AccountSid, ?SERVICE, [{&lt;&lt;"domains"&gt;&gt;, []}], {Props2});</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{ok, _} = delete_domain(DomainId),</font>
+<font color=red>     0..|  			{?error, Error}</font>
+        |  	end.
+        |  
+        |  post_domains_user(AccountSid, DomainId, Props) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"users"&gt;&gt;, []}],</font>
+<font color=red>     0..|  	ssam_resource:post(AccountSid, ?SERVICE, Uri, {Props}).</font>
+        |  
+        |  post_domains_gateway(AccountSid, DomainId, Props) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"gateways"&gt;&gt;, []}],</font>
+<font color=red>     0..|  	ssam_resource:post(AccountSid, ?SERVICE, Uri, {Props}).</font>
+        |  
+        |  %% PUT domain resources
+        |  
+        |  put_domain(AccountSid, DomainId, Props) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}],</font>
+<font color=red>     0..|  	case ssam_resource:get(AccountSid, ?SERVICE, Uri) of</font>
+        |  		{ok, Domain} -&gt;
+<font color=red>     0..|  			Users = ssam_objects:value(&lt;&lt;"users"&gt;&gt;, Domain, []),</font>
+<font color=red>     0..|  			Groups = ssam_objects:value(&lt;&lt;"groups"&gt;&gt;, Domain, []),</font>
+<font color=red>     0..|  			Gateways = ssam_objects:value(&lt;&lt;"gateways"&gt;&gt;, Domain, []),</font>
+<font color=red>     0..|  			Props1 = Props ++ [{&lt;&lt;"users"&gt;&gt;, Users},</font>
+        |  							   {&lt;&lt;"groups"&gt;&gt;, Groups},
+        |  							   {&lt;&lt;"gateways"&gt;&gt;, Gateways}],
+<font color=red>     0..|  			ssam_resource:put(AccountSid, ?SERVICE, Uri, {Props1});</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  put_domains_user(AccountSid, DomainId, UserId, Props) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"users"&gt;&gt;, UserId}],</font>
+<font color=red>     0..|  	ssam_resource:put(AccountSid, ?SERVICE, Uri, {Props}).</font>
+        |  
+        |  put_domains_gateway(AccountSid, DomainId, GatewayId, Props) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"gateways"&gt;&gt;, GatewayId}],</font>
+<font color=red>     0..|  	ssam_resource:put(AccountSid, ?SERVICE, Uri, {Props}).</font>
+        |  
+        |  %% DELETE domain resources
+        |  
+        |  delete_global_domain(DomainId) -&gt;
+<font color=red>     0..|  	ssam_resource:delete(DomainId, ?SERVICE, [{&lt;&lt;"domains"&gt;&gt;, []}]).</font>
+        |  
+        |  delete_domains(AccountSid) -&gt;
+<font color=red>     0..|  	ssam_resource:delete(AccountSid, ?SERVICE, [{&lt;&lt;"domains"&gt;&gt;, []}]).</font>
+        |  
+        |  delete_domain(DomainId) -&gt;
+<font color=red>     0..|  	ssam_resource:delete(DomainId, ?SERVICE, [{&lt;&lt;"domains"&gt;&gt;, []}]).</font>
+        |  
+        |  delete_domain(AccountSid, DomainId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}],</font>
+<font color=red>     0..|  	case get_domain(AccountSid, DomainId) of</font>
+        |  		{ok, Domain} -&gt;
+<font color=red>     0..|  			ssam_resource:put(AccountSid, ?SERVICE, Uri, Domain);</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  delete_domains_users(AccountSid, DomainId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"users"&gt;&gt;, []}],</font>
+<font color=red>     0..|  	ssam_resource:delete(AccountSid, ?SERVICE, Uri).</font>
+        |  
+        |  delete_domains_user(AccountSid, DomainId, UserId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"users"&gt;&gt;, UserId}],</font>
+<font color=red>     0..|  	ssam_resource:delete(AccountSid, ?SERVICE, Uri).</font>
+        |  
+        |  delete_domains_gateways(AccountSid, DomainId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"gateways"&gt;&gt;, []}],</font>
+<font color=red>     0..|  	ssam_resource:delete(AccountSid, ?SERVICE, Uri).</font>
+        |  
+        |  delete_domains_gateway(AccountSid, DomainId, GatewayId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"domains"&gt;&gt;, DomainId}, {&lt;&lt;"gateways"&gt;&gt;, GatewayId}],</font>
+<font color=red>     0..|  	ssam_resource:delete(AccountSid, ?SERVICE, Uri).</font>
+        |  
+        |  %% Private functions
+        |  
+        |  
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  get_account_sid_test_() -&gt;
+     2..|  	[
+        |  	 {"ok",
+        |  	  fun() -&gt;
+     1..|  			  ok
+        |  	  end
+        |  	 }
+        |  	].
+        |  
+        |  
+        |  -endif.
+        |  
+        |  
+</pre>
+</body>
+</html>

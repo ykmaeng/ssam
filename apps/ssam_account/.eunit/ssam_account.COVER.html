@@ -1,0 +1,306 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_account.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_account/.eunit/ssam_account.erl by COVER 2014-10-10 at 15:20:03
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_account).
+        |  
+        |  -compile(export_all).
+        |  
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_account.hrl").
+        |  
+        |  
+        |  init() -&gt;
+<font color=red>     0..|  	ok = ssam_riakc:set_bucket(?BUCKET_ACCOUNT_KEY, [{backend, ?BACKEND_BITCASK_MONTH}]),</font>
+<font color=red>     0..|  	lager:info("~p:init -&gt; ok", [?MODULE]),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  configs() -&gt;
+<font color=red>     0..|  	File = code:priv_dir(ssam_account) ++ "/conf/ssam_account.conf",</font>
+<font color=red>     0..|  	case file:consult(File) of</font>
+<font color=red>     0..|  		{ok, Props} -&gt; Props;</font>
+<font color=red>     0..|  		{error, _} -&gt; []</font>
+        |  	end.
+        |  
+        |  routes() -&gt;
+<font color=red>     0..|  	case proplists:get_value(routes, configs()) of</font>
+<font color=red>     0..|  		?undefined -&gt; [];</font>
+<font color=red>     0..|  		Routes -&gt; Routes</font>
+        |  	end.
+        |  
+        |  get_user(UserId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"users"&gt;&gt;, UserId}],</font>
+<font color=red>     0..|  	ssam_resource:get(user_idx(UserId), ?SERVICE, Uri).</font>
+        |  
+        |  post_user(UserId, Props) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"users"&gt;&gt;, []}],</font>
+<font color=red>     0..|  	PostUser = fun() -&gt;</font>
+<font color=red>     0..|  		Props1 = ssam_objects:value_replaced(&lt;&lt;"status"&gt;&gt;, &lt;&lt;"pending"&gt;&gt;, Props),</font>
+<font color=red>     0..|  		Props2 = ssam_objects:value_replaced(</font>
+        |  				   &lt;&lt;"account_sid"&gt;&gt;, Sid = new_account_sid(), Props1),
+<font color=red>     0..|  		case ssam_resource:post(user_idx(UserId), ?SERVICE, Uri, {Props2}) of</font>
+        |  			{ok, Doc} -&gt;
+<font color=red>     0..|  				case post_user_meta(Uri, UserId) of</font>
+        |  					{ok, _} -&gt;
+<font color=red>     0..|  						case send_mail(UserId, Sid) of</font>
+<font color=red>     0..|  							ok -&gt; {ok, Doc};</font>
+<font color=red>     0..|  							Error -&gt; Error</font>
+        |  						end;
+        |  					Error -&gt;
+<font color=red>     0..|  						lager:error("~p:post_user -&gt; ~p", [?MODULE, Error]),</font>
+<font color=red>     0..|  						delete_user(UserId), Error</font>
+        |  				end;
+        |  			Error -&gt;
+<font color=red>     0..|  				Error</font>
+        |  		end
+        |  	end,
+<font color=red>     0..|  	case ssam_resource:get(user_idx(UserId), ?SERVICE, [{&lt;&lt;"users"&gt;&gt;, UserId}]) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			case ssam_objects:value(&lt;&lt;"status"&gt;&gt;, Doc) of</font>
+        |  				&lt;&lt;"pending"&gt;&gt; -&gt;
+<font color=red>     0..|  					case delete_user(UserId) of</font>
+<font color=red>     0..|  						{ok, _} -&gt; PostUser();</font>
+<font color=red>     0..|  						Error -&gt; Error</font>
+        |  					end;
+        |  				_ -&gt;
+<font color=red>     0..|  					{?error, ?user_already_exists}</font>
+        |  			end;
+        |  		_ -&gt;
+<font color=red>     0..|  			PostUser()</font>
+        |  	end.
+        |  
+        |  delete_user(UserId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"users"&gt;&gt;, UserId}],</font>
+<font color=red>     0..|  	case ssam_resource:delete(user_idx(UserId), ?SERVICE, Uri) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			ssam_resource:delete(user_meta_key(UserId), ?SERVICE, Uri);</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			lager:error("~p:delete_user -&gt; ~p", [?MODULE, Error]),</font>
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  post_user_meta(Uri, UserId) -&gt;
+<font color=red>     0..|  	Props = [{&lt;&lt;"id"&gt;&gt;, UserId},</font>
+        |  			 {&lt;&lt;"created"&gt;&gt;, ssam_util:now_sec()},
+        |  			 {&lt;&lt;"updated"&gt;&gt;, ssam_util:now_sec()}],
+<font color=red>     0..|  	ssam_resource:post(user_meta_key(UserId), ?SERVICE, Uri, {Props}).</font>
+        |  
+        |  post_users_authority(UserId, Name, Password, Sid) -&gt;
+<font color=red>     0..|  	post_users_authority(check, {UserId, Name, Password, Sid}).</font>
+        |  
+        |  post_users_authority(check, {UserId, Name, Password, Sid}) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"users"&gt;&gt;, UserId}],</font>
+<font color=red>     0..|  	case ssam_resource:get(user_idx(UserId), ?SERVICE, Uri) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			case ssam_objects:value(&lt;&lt;"account_sid"&gt;&gt;, Doc) of</font>
+        |  				Sid -&gt;
+<font color=red>     0..|  					case ssam_objects:value(&lt;&lt;"status"&gt;&gt;, Doc) of</font>
+        |  						&lt;&lt;"pending"&gt;&gt; -&gt;
+<font color=red>     0..|  							post_users_authority(</font>
+        |  							  update_user, {Doc, UserId, Name, Password, Sid});
+        |  						_ -&gt;
+<font color=red>     0..|  							{?error, ?invalid_status}</font>
+        |  					end;
+        |  				_ -&gt;
+<font color=red>     0..|  					{?error, ?invalid_information}</font>
+        |  			end;
+        |  		_ -&gt;
+<font color=red>     0..|  			{?error, ?invalid_information}</font>
+        |  	end;
+        |  post_users_authority(update_user, {Doc, UserId, Name, Password, Sid}) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"users"&gt;&gt;, UserId}],</font>
+<font color=red>     0..|  	Doc1 = ssam_objects:value_replaced(&lt;&lt;"name"&gt;&gt;, Name, Doc),</font>
+<font color=red>     0..|  	Doc2 = ssam_objects:value_replaced(&lt;&lt;"status"&gt;&gt;, &lt;&lt;"active"&gt;&gt;, Doc1),</font>
+<font color=red>     0..|  	case ssam_resource:put(user_idx(UserId), ?SERVICE, Uri, Doc2) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			case put_user_meta(Uri, UserId, Password) of</font>
+        |  				{ok, _} -&gt;
+<font color=red>     0..|  					post_users_authority(post_account, {Doc, UserId, Password, Sid});</font>
+        |  				Error -&gt;
+<font color=red>     0..|  					ssam_resource:put(user_idx(UserId), ?SERVICE, Uri, Doc),</font>
+<font color=red>     0..|  					Error</font>
+        |  			end;
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end;
+        |  post_users_authority(post_account, {Doc, UserId, Password, Sid}) -&gt;
+<font color=red>     0..|  	Token = new_token(Password),</font>
+<font color=red>     0..|  	case post_account(UserId, Sid, secure_token(Token)) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			Output = {[{&lt;&lt;"account_sid"&gt;&gt;, Sid}, {&lt;&lt;"auth_token"&gt;&gt;, Token}]},</font>
+<font color=red>     0..|  			{ok, Output};</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Uri = [{&lt;&lt;"users"&gt;&gt;, UserId}],</font>
+<font color=red>     0..|  			ssam_resource:put(user_idx(UserId), ?SERVICE, Uri, Doc),</font>
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  put_user(UserId, UserPw, Props) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"users"&gt;&gt;, UserId}],</font>
+<font color=red>     0..|  	case ssam_resource:get(user_idx(UserId), ?SERVICE, Uri) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			Status = ssam_objects:value(&lt;&lt;"status"&gt;&gt;, Doc, &lt;&lt;&gt;&gt;),</font>
+<font color=red>     0..|  			Sid = ssam_objects:value(&lt;&lt;"account_sid"&gt;&gt;, Doc, &lt;&lt;&gt;&gt;),</font>
+<font color=red>     0..|  			Props1 = ssam_objects:value_replaced(&lt;&lt;"id"&gt;&gt;, UserId, Props),</font>
+<font color=red>     0..|  			Props2 = ssam_objects:value_replaced(&lt;&lt;"status"&gt;&gt;, Status, Props1),</font>
+<font color=red>     0..|  			Props3 = ssam_objects:value_replaced(&lt;&lt;"account_sid"&gt;&gt;, Sid, Props2),</font>
+<font color=red>     0..|  			case ssam_resource:put(user_idx(UserId), ?SERVICE, Uri, {Props3}) of</font>
+<font color=red>     0..|  				{ok, _} -&gt; put_user_meta(Uri, UserId, UserPw);</font>
+<font color=red>     0..|  				Error -&gt; Error</font>
+        |  			end;
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  put_user_meta(Uri, UserId, UserPw) -&gt;
+<font color=red>     0..|  	case ssam_resource:get(user_meta_key(UserId), ?SERVICE, Uri) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			Props = [{&lt;&lt;"id"&gt;&gt;, UserId},</font>
+        |  					 {&lt;&lt;"password"&gt;&gt;, secure_password(UserId, UserPw)},
+        |  					 {&lt;&lt;"created"&gt;&gt;, ssam_objects:value(
+        |  									   &lt;&lt;"created"&gt;&gt;, Doc, ssam_util:now_sec())},
+        |  					 {&lt;&lt;"updated"&gt;&gt;, ssam_util:now_sec()}],
+<font color=red>     0..|  			ssam_resource:put(user_meta_key(UserId), ?SERVICE, Uri, {Props});</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  get_account(Sid) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"accounts"&gt;&gt;, Sid}],</font>
+<font color=red>     0..|  	ssam_resource:get(Sid, ?SERVICE, Uri).</font>
+        |  
+        |  post_account(UserId, Sid, Token) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"accounts"&gt;&gt;, []}],</font>
+<font color=red>     0..|  	Props = [{&lt;&lt;"id"&gt;&gt;, Sid},</font>
+        |  			 {&lt;&lt;"user_id"&gt;&gt;, UserId},
+        |  			 {&lt;&lt;"token"&gt;&gt;, Token},
+        |  			 {&lt;&lt;"cidrs"&gt;&gt;, []}],
+<font color=red>     0..|  	ssam_resource:post(Sid, ?SERVICE, Uri, {Props}).</font>
+        |  
+        |  get_users_authoirty(check, {UserId, Sid}) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"users"&gt;&gt;, UserId}],</font>
+<font color=red>     0..|  	case ssam_resource:get(user_idx(UserId), ?SERVICE, Uri) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			case ssam_objects:value(&lt;&lt;"account_sid"&gt;&gt;, Doc) of</font>
+        |  				Sid -&gt;
+<font color=red>     0..|  					case ssam_objects:value(&lt;&lt;"status"&gt;&gt;, Doc) of</font>
+        |  						&lt;&lt;"pending"&gt;&gt; -&gt;
+<font color=red>     0..|  							get_users_authoirty(render,[{email, UserId}]);</font>
+        |  						_ -&gt;
+<font color=red>     0..|  							{?error, ?invalid_status}</font>
+        |  					end;
+        |  				_ -&gt;
+<font color=red>     0..|  					{?error, ?invalid_information}</font>
+        |  			end;
+        |  		_ -&gt;
+<font color=red>     0..|  			{?error, ?invalid_information}</font>
+        |  	end;
+        |  get_users_authoirty(render, Props) -&gt;
+<font color=red>     0..|  	case catch new_authority:module_inf() of</font>
+        |  		{'EXIT', {undef, _}} -&gt;
+<font color=red>     0..|  			case erlydtl:compile_file(code:priv_dir(ssam) ++</font>
+        |  									  "/templates/new_authority.html",
+        |  									  new_authority) of
+        |  				{ok, Module} -&gt;
+<font color=red>     0..|  					Module:render(Props);</font>
+        |  				_ -&gt;
+<font color=red>     0..|  					{?error, ?page_not_found}</font>
+        |  			end;
+        |  		_ -&gt;
+<font color=red>     0..|  			new_authority:render(Props)</font>
+        |  	end;
+        |  get_users_authoirty(UserId, Sid) -&gt;
+<font color=red>     0..|  	get_users_authoirty(check, {UserId, Sid}).</font>
+        |  
+        |  user_idx(UserId) -&gt;
+<font color=red>     0..|  	&lt;&lt;(erlang:phash2(UserId) rem 1024):16&gt;&gt;.</font>
+        |  
+        |  user_meta_key(UserId) -&gt;
+<font color=red>     0..|  	&lt;&lt;(user_idx(UserId))/binary, 1&gt;&gt;.</font>
+        |  
+        |  get_key(Id) -&gt;
+<font color=red>     0..|  	case ssam_riakc:get(?BUCKET_ACCOUNT_KEY, Id) of</font>
+        |  		{ok, Bin} when is_binary(Bin) -&gt;
+<font color=red>     0..|  			{ok, binary_to_term(Bin)};</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			{?error, Reason}</font>
+        |  	end.
+        |  
+        |  post_key(Sid, TTL) -&gt;
+<font color=red>     0..|  	Key = ssam_auth:new_key(),</font>
+<font color=red>     0..|  	case store_key(Sid, Key, TTL) of</font>
+<font color=red>     0..|  		ok -&gt; {ok, ssam_auth:encoded_key(Key)};</font>
+<font color=red>     0..|  		Error -&gt; Error</font>
+        |  	end.
+        |  
+        |  %% Private functions
+        |  
+        |  store_key(Sid, {Id, Nonce}, TTL) -&gt;
+<font color=red>     0..|  	Doc = [{sid, Sid}, {nonce, Nonce}, {ttl, TTL}, {updated, ssam_util:now_sec()}],</font>
+<font color=red>     0..|  	ssam_riakc:put(?BUCKET_ACCOUNT_KEY, Id, Doc).</font>
+        |  
+        |  update_key(Id, Doc) -&gt;
+<font color=red>     0..|  	ssam_riakc:put(?BUCKET_ACCOUNT_KEY, Id, Doc).</font>
+        |  
+        |  new_account_sid() -&gt;
+<font color=red>     0..|  	ssam_util:unique_id(&lt;&lt;$a&gt;&gt;).</font>
+        |  
+        |  new_token(UserPw) -&gt;
+<font color=red>     0..|  	ssam_util:sha(&lt;&lt;(crypto:hash(sha, UserPw))/binary,</font>
+        |  					":", (ssam_util:now_mic()):56&gt;&gt;).
+        |  
+        |  secure_password(UserId, UserPw) -&gt;
+<font color=red>     0..|  	crypto:hash(sha, &lt;&lt;UserId/bits, ":", UserPw/bits&gt;&gt;).</font>
+        |  
+        |  secure_token(Token) -&gt;
+<font color=red>     0..|  	crypto:hash(sha, Token).</font>
+        |  
+        |  send_mail(To, Sid)-&gt;
+<font color=red>     0..|  	TemplatePath = ssam_conf:value(?SERVICE, [mail, welcome, template]),</font>
+<font color=red>     0..|  	TemplatePath1 = erlang:iolist_to_binary([code:priv_dir(ssam), $/, TemplatePath]),</font>
+<font color=red>     0..|  	case file:read_file(TemplatePath1) of</font>
+        |  		{ok, Template} -&gt; 
+<font color=red>     0..|  			Profile = ssam_conf:value(?SERVICE, [mail, welcome, profile]),</font>
+<font color=red>     0..|  			From = ssam_conf:value(?SERVICE, [mail, welcome, from]),</font>
+<font color=red>     0..|  			Subject = ssam_conf:value(?SERVICE, [mail, welcome, subject]),</font>
+<font color=red>     0..|  			Body = ssam_util:template_compiled(Template, [{"to", To}, {"sid", Sid}]),</font>
+<font color=red>     0..|  			ssam_mailc:send(Profile, From, [{To, To}], Subject, Body);</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			lager:error("~p:send_mail -&gt; ~p", [?MODULE, Reason]),</font>
+<font color=red>     0..|  			{?error, Reason}</font>
+        |  	end.
+        |  
+        |  
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  
+        |  -endif.
+        |  
+</pre>
+</body>
+</html>

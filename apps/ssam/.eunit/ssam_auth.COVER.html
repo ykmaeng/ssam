@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_auth.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_auth.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_auth).
+        |  
+        |  -export([new_key/0,
+        |  		 new_key_id/0,
+        |  		 new_encoded_key/0,
+        |  		 encoded_key/1,
+        |  		 is_authorized/2]).
+        |  
+        |  -include("ssam.hrl").
+        |  
+        |  %% Public functions
+        |  
+        |  
+        |  new_key() -&gt;
+<font color=red>     0..|  	Id = new_key_id(),</font>
+<font color=red>     0..|  	Nonce = new_key_nonce(),</font>
+<font color=red>     0..|  	{Id, Nonce}.</font>
+        |  
+        |  new_encoded_key() -&gt;
+<font color=red>     0..|  	encoded_key(new_key()).</font>
+        |  
+        |  new_key_id() -&gt;
+<font color=red>     0..|  	ssam_util:unique_bin().</font>
+        |  
+        |  is_authorized(Req, State) -&gt;
+<font color=red>     0..|  	is_authorized({key, Req, State}).</font>
+        |  
+        |  			
+        |  %% Private functions
+        |  
+        |  is_authorized({key, Req, State}) -&gt;
+<font color=red>     0..|  	#request{params = Params, cookies = Cookies} = State,</font>
+<font color=red>     0..|  	case proplists:get_value(&lt;&lt;"key"&gt;&gt;, Cookies,</font>
+        |  							 proplists:get_value(&lt;&lt;"key"&gt;&gt;, Params, &lt;&lt;&gt;&gt;)) of
+        |  		&lt;&lt;&gt;&gt; -&gt;
+<font color=red>     0..|  			is_authorized({basic, Req, State});</font>
+        |  		Key -&gt;
+<font color=red>     0..|  			case check_key(Key) of</font>
+        |  				{?error, Reason} -&gt;
+<font color=red>     0..|  					lager:warning("key, ~p", [Reason]),</font>
+<font color=red>     0..|  					Req1 = cowboy_req:set_resp_cookie(</font>
+        |  							 &lt;&lt;"key"&gt;&gt;, &lt;&lt;&gt;&gt;, [{max_age, 0}, {path, "/"}, {secure, true}], Req),
+<font color=red>     0..|  					is_authorized({basic, Req1, State});</font>
+        |  				{ok, Sid} -&gt;
+<font color=red>     0..|  					State1 = State#request{account_sid = Sid},</font>
+<font color=red>     0..|  					{true, Req, State1};</font>
+        |  				{ok, Sid, NewKey} -&gt;
+<font color=red>     0..|  					lager:debug("true"),</font>
+<font color=red>     0..|  					Req1 = cowboy_req:set_resp_cookie(</font>
+        |  							 &lt;&lt;"key"&gt;&gt;, NewKey, [{path, "/"}, {secure, true}], Req),
+<font color=red>     0..|  					State1 = State#request{account_sid = Sid},</font>
+<font color=red>     0..|  					{true, Req1, State1}</font>
+        |  			end
+        |  	end;
+        |  is_authorized({basic, Req, State}) -&gt;
+<font color=red>     0..|  	#request{account_sid = Sid, auth_token = Token} = State,</font>
+<font color=red>     0..|  	case check_basic(Sid, Token) of</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			lager:warning("basic, ~p", [Reason]),</font>
+<font color=red>     0..|  			{{false, &lt;&lt;"Basic realm=api.tellet.io"&gt;&gt;}, Req, State};</font>
+        |  		ok -&gt;
+<font color=red>     0..|  			lager:debug("basic, true"),</font>
+<font color=red>     0..|  			{true, Req, State}</font>
+        |  	end.
+        |  
+        |  check_key(Key) when is_binary(Key) -&gt;
+<font color=red>     0..|  	check_key(decode, Key).</font>
+        |  
+        |  check_key(decode, Key) -&gt;
+<font color=red>     0..|  	case decoded_key(Key) of</font>
+<font color=red>     0..|  		{?error, Reason} -&gt; {?error, Reason};</font>
+<font color=red>     0..|  		{Id, Nonce} -&gt; check_key('query', {Id, Nonce})</font>
+        |  	end;
+        |  check_key('query', {Id, Nonce}) -&gt;
+<font color=red>     0..|  	case ssam_account:get_key(Id) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			check_key(check_nonce, {Id, Nonce, Doc});</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end;
+        |  check_key(check_nonce, {Id, Nonce, Doc}) -&gt;
+<font color=red>     0..|  	case proplists:get_value(nonce, Doc) of</font>
+        |  		Nonce -&gt;
+<font color=red>     0..|  			check_key(check_expiry, {Id, Doc});</font>
+        |  		_ -&gt;
+<font color=red>     0..|  			{?error, ?nonce_not_matched}</font>
+        |  	end;
+        |  check_key(check_expiry, {Id, Doc}) -&gt;
+<font color=red>     0..|  	case proplists:get_value(updated, Doc) of</font>
+        |  		?undefined -&gt;
+<font color=red>     0..|  			{?error, ?invalid_key_updated};</font>
+        |  		Updated -&gt;
+<font color=red>     0..|  			TTL = proplists:get_value(ttl, Doc, 0),</font>
+<font color=red>     0..|  			case ssam_util:is_expired(Updated, TTL) of</font>
+        |  				false -&gt;
+        |  					%check_key(update_key, {Id, Doc});
+<font color=red>     0..|  					check_key(not_update_key, {Id, Doc});</font>
+        |  				true -&gt;
+<font color=red>     0..|  					{?error, ?key_expired}</font>
+        |  			end
+        |  	end;
+        |  check_key(not_update_key, {_Id, Doc}) -&gt;
+<font color=red>     0..|  	Sid = ssam_objects:value(sid, Doc),</font>
+<font color=red>     0..|  	{ok, Sid};</font>
+        |  check_key(update_key, {Id, Doc}) -&gt;
+<font color=red>     0..|  	NewNonce = new_key_nonce(),</font>
+<font color=red>     0..|  	Sid = ssam_objects:value(sid, Doc),</font>
+<font color=red>     0..|  	Doc1 = ssam_objects:value_replaced(nonce, NewNonce, Doc),</font>
+<font color=red>     0..|  	Doc2 = ssam_objects:value_replaced(updated, ssam_util:now_sec(), Doc1),</font>
+<font color=red>     0..|  	case ssam_account:update_key(Id, Doc2) of</font>
+        |  		ok -&gt;
+<font color=red>     0..|  			{ok, Sid, encoded_key({Id, NewNonce})};</font>
+        |  		Error -&gt;
+<font color=red>     0..|  			Error</font>
+        |  	end.
+        |  
+        |  
+        |  check_basic(Sid, Token) when size(Sid) &gt; 0, size(Token) &gt; 0 -&gt;
+<font color=red>     0..|  	SecureToken = ssam_account:secure_token(Token),</font>
+<font color=red>     0..|  	case ssam_account:get_account(Sid) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			case ssam_objects:value(&lt;&lt;"token"&gt;&gt;, Doc) of</font>
+<font color=red>     0..|  				SecureToken -&gt; ok;</font>
+<font color=red>     0..|  				_ -&gt; {?error, ?token_not_matched}</font>
+        |  			end;
+        |  		{?error, {Reason, _, _}} -&gt;
+<font color=red>     0..|  			{?error, Reason}</font>
+        |  	end;
+        |  check_basic(_, _) -&gt;
+<font color=red>     0..|  	{?error, ?invalid_data}.</font>
+        |  
+        |  
+        |  new_key_nonce() -&gt;
+<font color=red>     0..|  	crypto:rand_bytes(16).</font>
+        |  
+        |  encoded_key({Id, Nonce}) -&gt;
+<font color=red>     0..|  	ssam_util:intbin2hex(&lt;&lt;Id/binary, Nonce/binary&gt;&gt;).</font>
+        |  
+        |  decoded_key(Encoded) -&gt;
+<font color=red>     0..|  	case ssam_util:hex2intbin(Encoded) of</font>
+        |  		Decoded when size(Decoded) =:= 32 -&gt;
+<font color=red>     0..|  			&lt;&lt;Id:16/binary, Nonce:16/binary&gt;&gt; = Decoded,</font>
+<font color=red>     0..|  			{Id, Nonce};</font>
+        |  		_ -&gt;
+<font color=red>     0..|  			{?error, ?invalid_key_encoded}</font>
+        |  	end.
+        |  
+        |  
+        |  %% Tests
+        |  %%
+        |  -ifdef(TEST_).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  
+        |  -endif.
+        |  
+</pre>
+</body>
+</html>

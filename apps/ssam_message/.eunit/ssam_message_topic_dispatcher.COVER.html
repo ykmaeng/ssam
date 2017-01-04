@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message_topic_dispatcher.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message_topic_dispatcher.erl by COVER 2014-10-08 at 11:23:44
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_message_topic_dispatcher).
+        |  
+        |  -behaviour(gen_server).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_message.hrl").
+        |  
+        |  %% APIs
+        |  -export([
+        |  		 start_link/1,
+        |  		 stop/2, stop/3,
+        |  		 send/3,
+        |  		 request/2
+        |  		]).
+        |  
+        |  %% Callbacks
+        |  -export([init/1,
+        |  		 handle_call/3,
+        |  		 handle_cast/2,
+        |  		 handle_info/2,
+        |  		 terminate/2,
+        |           code_change/3]).
+        |  
+        |  
+        |  -define(SERVER_TIMEOUT, 30*1000).
+        |  
+        |  -record(state, {
+        |  		  topic_key :: ssam_message_topic:key(),
+        |  		  server_timeout :: pos_integer()
+        |  	 }).
+        |  
+        |  %% Public functions
+        |  
+        |  start_link(TopicKey) -&gt;
+<font color=red>     0..|  	gen_server:start_link(?MODULE, [TopicKey], []).</font>
+        |  
+        |  stop(Server, TopicKey) -&gt;
+<font color=red>     0..|  	stop(Server, TopicKey, normal).</font>
+        |  
+        |  stop(Server, TopicKey, Reason) -&gt;
+<font color=red>     0..|  	gen_server:cast(Server, {stop, TopicKey, Reason}).</font>
+        |  
+        |  send(Server, Msgs, Targets) -&gt;
+<font color=red>     0..|  	gen_server:call(Server, {send, Msgs, Targets}).</font>
+        |  
+        |  request(Server, Request) -&gt;
+<font color=red>     0..|  	gen_server:call(Server, {request, Request}).</font>
+        |  
+        |  %% Callback functions
+        |  
+        |  init([TopicKey]) -&gt;
+<font color=red>     0..|  	{ok, #state{topic_key = TopicKey,</font>
+        |  				server_timeout = ?SERVER_TIMEOUT}, ?SERVER_TIMEOUT}.
+        |  
+        |  handle_call({send, Msgs, Targets}, _From, State) -&gt;
+<font color=red>     0..|  	lager:debug("send, Msgs: ~p, Targets: ~p", [Msgs, Targets]),</font>
+<font color=red>     0..|      {reply, ok, State, ?TOPIC_SERVER_TIMEOUT};</font>
+        |  
+        |  handle_call({request, Req}, _From, State) -&gt;
+<font color=red>     0..|  	lager:debug("request, Req: ~p", [Req]),</font>
+<font color=red>     0..|      {reply, ok, State, ?TOPIC_SERVER_TIMEOUT};</font>
+        |  
+        |  handle_call(Unknown, From, State) -&gt;
+<font color=red>     0..|  	lager:debug("Unknown: ~p, From ~p", [Unknown, From]),</font>
+<font color=red>     0..|      {reply, ok, State, ?TOPIC_SERVER_TIMEOUT}.</font>
+        |  
+        |  handle_cast({stop, _TopicKey, Reason}, State) -&gt;
+<font color=red>     0..|  	{stop, Reason, State};</font>
+        |  
+        |  handle_cast(Unknown, State) -&gt;
+<font color=red>     0..|  	lager:error("Unknown: ~p", [Unknown]),	</font>
+<font color=red>     0..|      {noreply, State, ?TOPIC_SERVER_TIMEOUT}.</font>
+        |  
+        |  handle_info(timeout, State) -&gt;
+<font color=red>     0..|  	{noreply, State, ?TOPIC_SERVER_TIMEOUT};</font>
+        |  
+        |  handle_info(_Msg, State) -&gt;
+<font color=red>     0..|  	{noreply, State, ?TOPIC_SERVER_TIMEOUT}.</font>
+        |  
+        |  terminate(Reason, _State) -&gt;
+<font color=red>     0..|  	lager:debug("~p", [Reason]),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  code_change(_OldVsn, State, _Extra) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  %% Private functions
+        |  
+        |  
+        |  
+</pre>
+</body>
+</html>

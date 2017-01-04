@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_lazy_worker.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_lazy_worker.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_lazy_worker).
+        |  
+        |  -behaviour(gen_server).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  
+        |  %% APIs
+        |  -export([
+        |  		 start_link/0,
+        |  		 stop/1,
+        |  		 add/1, add/2
+        |  		]).
+        |  
+        |  %% Callbacks
+        |  -export([init/1,
+        |  		 handle_call/3,
+        |  		 handle_cast/2,
+        |  		 handle_info/2,
+        |  		 terminate/2,
+        |           code_change/3]).
+        |  
+        |  -record(state, {}).
+        |  
+        |  %% Public functions
+        |  
+        |  start_link() -&gt;
+<font color=red>     0..|  	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).</font>
+        |  
+        |  stop(Reason) -&gt;
+<font color=red>     0..|  	gen_server:cast(?MODULE, {stop, Reason}).</font>
+        |  
+<font color=red>     0..|  add(Fun) -&gt; add(Fun, []).</font>
+        |  add(Fun, Props) -&gt;
+<font color=red>     0..|  	gen_server:cast(?MODULE, {add, Fun, Props}).</font>
+        |  	
+        |  %% Callback functions
+        |  
+        |  init([]) -&gt;
+<font color=red>     0..|  	{ok, #state{}}.</font>
+        |  
+        |  handle_call(Unknown, From, State) -&gt;
+<font color=red>     0..|  	lager:warning("Unknown: ~p, From ~p", [Unknown, From]),</font>
+<font color=red>     0..|      {reply, ok, State}.</font>
+        |  
+        |  handle_cast({add, Fun, Props}, State) -&gt;
+<font color=red>     0..|  	lager:debug("Fun: ~p, Props: ~p", [Fun, Props]),</font>
+<font color=red>     0..|      {noreply, State};</font>
+        |  
+        |  handle_cast({stop, Reason}, State) -&gt;
+<font color=red>     0..|  	{stop, Reason, State};</font>
+        |  
+        |  handle_cast(Unknown, State) -&gt;
+<font color=red>     0..|  	lager:error("Unknown: ~p", [Unknown]),	</font>
+<font color=red>     0..|      {noreply, State}.</font>
+        |  
+        |  handle_info(_Msg, State) -&gt;
+<font color=red>     0..|  	{noreply, State}.</font>
+        |  
+        |  terminate(Reason, _State) -&gt;
+<font color=red>     0..|  	lager:debug("~p", [Reason]),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  code_change(_OldVsn, State, _Extra) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  %% Private functions
+        |  
+        |  %% Tests
+        |  %%
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  setup_test_() -&gt;
+     1..|  	{setup,
+     1..|  		fun() -&gt; ok end,	%% initialize
+     1..|  		fun(_X) -&gt; ok end,	%% cleanup
+     1..|  		fun(_X) -&gt; [		%% tests
+        |  			tests(_X)
+        |  		] end
+        |  	}.
+        |  
+        |  tests(_X) -&gt;
+     1..|  	[
+        |  		{"test",
+        |  			fun() -&gt;
+     1..|  				?undef
+        |  			end
+        |  		}
+        |  	].
+        |  
+        |  -endif.
+        |  
+        |  
+        |  
+        |  
+        |  
+</pre>
+</body>
+</html>

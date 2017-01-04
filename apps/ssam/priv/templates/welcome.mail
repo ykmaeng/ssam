@@ -1,0 +1,4 @@
+Welcome to Tellet!
+
+To activate your account, please click the link bellow:
+https://api.tellet.io:9001/v1-beta/account/users/{{to}}/authority?sid={{sid}}

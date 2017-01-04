@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_data.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_data.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_data).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  
+        |  -define(DEFAULT_TTL_SEC, 180).
+        |  
+        |  %% APIs
+        |  -export([
+        |  		 value/2, value/3,
+        |  		 put/3, put/4,
+        |  		 erase/2,
+        |  		 reloaded/2, reloaded/3
+        |  		]).
+        |  
+        |  
+        |  put(Bucket, Key, Val) -&gt;
+     1..|  	put(Bucket, Key, Val, default_props()).
+        |  
+        |  put(Bucket, Key, Val, Props) -&gt;
+     1..|  	ok = memoize(Bucket, Key, Val, Props),
+     1..|  	ok = persist(Bucket, Key, {Val, Props}).
+        |  
+        |  value(Bucket, Key) -&gt;
+     1..|  	value(Bucket, Key, ?undefined).
+        |  
+        |  value(Bucket, Key, Default) -&gt;
+     1..|  	case memoized(Bucket, Key) of
+        |  		?undefined -&gt;
+<font color=red>     0..|  			case persisted(Bucket, Key) of</font>
+        |  				?undefined -&gt;
+<font color=red>     0..|  					Default;</font>
+        |  				{Val, Props} -&gt;
+<font color=red>     0..|  					ok = memoize(Bucket, Key, Val, Props),</font>
+<font color=red>     0..|  					Val	</font>
+        |  			end;
+        |  		Val -&gt;
+     1..|  			Val
+        |  	end.
+        |  
+        |  erase(Bucket, Key) -&gt;
+<font color=red>     0..|  	ok = ssam_cache:delete(Bucket, Key),</font>
+<font color=red>     0..|  	ok = ssam_riakc:delete(Bucket, Key).</font>
+        |  	
+        |  
+        |  reloaded(Bucket, Key) -&gt;
+<font color=red>     0..|  	reloaded(Bucket, Key, ?undefined).</font>
+        |  
+        |  reloaded(Bucket, Key, Default) -&gt;
+<font color=red>     0..|  	case persisted(Bucket, Key) of</font>
+        |  		?undefined -&gt;
+<font color=red>     0..|  			Default;</font>
+        |  		{Val, Props} -&gt;
+<font color=red>     0..|  			ok = memoize(Bucket, Key, Val, Props),</font>
+<font color=red>     0..|  			Val	</font>
+        |  	end.
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  default_props() -&gt;
+     1..|  	[{ttl, ?DEFAULT_TTL_SEC}].
+        |  
+        |  memoize(Bucket, Key, Val, Props) -&gt;
+     1..|  	ssam_cache:put(Bucket, Key, Val, Props).
+        |  
+        |  persist(Bucket, Key, ValProp) -&gt;
+     1..|  	ssam_riakc:put(Bucket, Key, ValProp).
+        |  
+        |  memoized(Bucket, Key) -&gt;
+     1..|  	ssam_cache:value(Bucket, Key, ?undefined).
+        |  
+        |  persisted(Bucket, Key) -&gt;
+<font color=red>     0..|  	case ssam_riakc:get(Bucket, Key) of</font>
+        |  		{ok, Bin} when is_binary(Bin) -&gt;
+<font color=red>     0..|  			{_Val, _Props} = binary_to_term(Bin);</font>
+        |  		{ok, {Val, Props}} -&gt;
+<font color=red>     0..|  			{Val, Props};</font>
+        |  		{?error, _Reason} -&gt;
+<font color=red>     0..|  			?undefined	</font>
+        |  	end.
+        |  
+        |  
+        |  
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  
+        |  setup_test_() -&gt;
+     1..|  	{setup,
+        |  		fun() -&gt; 
+     1..|  			{ok, _} = ssam_cache:start_link()
+        |  		end,	%% initialize
+     1..|  		fun(_X) -&gt; ok end,	%% cleanup
+     1..|  		fun(_X) -&gt; [		%% tests
+        |  			tests(_X)
+        |  		] end
+        |  	}.
+        |  
+        |  tests(_X) -&gt;
+     1..|  	[
+        |  		{"test",
+        |  			fun() -&gt;
+     1..|  				Bucket = &lt;&lt;"bucket"&gt;&gt;,
+     1..|  				Key = term_to_binary({key, &lt;&lt;"test"&gt;&gt;}),
+     1..|  				Val = test,
+     1..|  				ok = put(Bucket, Key, Val),
+     1..|  				Val = value(Bucket, Key)
+        |  			end
+        |  		}
+        |  	].
+        |  
+        |  
+        |  
+        |  -endif.
+</pre>
+</body>
+</html>

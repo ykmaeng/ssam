@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite tests="1" failures="0" errors="0" skipped="0" time="0.030" name="module 'ssam_message_topic_subscriber'">
+  <testcase time="0.027" name="ssam_message_topic_subscriber:tests/1_0" description="subscribe &amp; unsubscribe"/>
+</testsuite>

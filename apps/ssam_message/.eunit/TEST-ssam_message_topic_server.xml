@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite tests="3" failures="0" errors="0" skipped="0" time="0.008" name="module 'ssam_message_topic_server'">
+  <testcase time="0.000" name="ssam_message_topic_server:record_tests/0_0" description="record_to_props"/>
+  <testcase time="0.000" name="ssam_message_topic_server:record_tests/0_0" description="props_to_record"/>
+  <testcase time="0.000" name="ssam_message_topic_server:message_tests/0_0" description="select"/>
+</testsuite>

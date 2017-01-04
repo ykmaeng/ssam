@@ -1,0 +1,447 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_aml.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_aml.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_aml).
+        |  
+        |  -export([
+        |  		 start/2,
+        |  		 app_tellet/3,
+        |  		 app_set/3,
+        |  		 app_select/3,
+        |  		 app_case/3,
+        |  		 app_if/3,
+        |  		 app_goto/3,
+        |  		 app_include/3,
+        |  		 app_loop/3,
+        |  		 app_action/3,
+        |  		 app_exit/3,
+        |  		 app_continue/3,
+        |  		 app_break/3,
+        |  		 app_stop/3,
+        |  
+        |  		 '_temporary'/0
+        |  		]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  
+        |  -define(APP_LOOP_MAXCOUNT, 10).
+        |  
+        |  start(Xml, State) -&gt;
+<font color=red>     0..|  	case parse(Xml) of</font>
+        |  		{ok, Parsed} -&gt;
+<font color=red>     0..|  			route([Parsed], [], State#ssaml{doc = Parsed});</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			lager:error("~p", [Reason]),</font>
+<font color=red>     0..|  			{?error, Reason}</font>
+        |  	end.
+        |  
+        |  parse(Xml) -&gt;
+<font color=red>     0..|  	case erlsom:simple_form(Xml, [{nameFun, fun erlsom_callback/3}]) of</font>
+        |  		{ok, Parsed, _Rest} -&gt;
+<font color=red>     0..|  			{ok, Parsed};</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			lager:error("~p, Xml: ~p", [Reason, Xml]),</font>
+<font color=red>     0..|  			{?error, Reason}</font>
+        |  	end.
+        |  
+        |  
+        |  app_tellet(_, Data, State) -&gt;
+<font color=red>     0..|  	{continue, Data, State}.</font>
+        |  
+        |  app_set(Attrs, _, State) -&gt;
+<font color=red>     0..|  	OldVars = State#ssaml.vars,</font>
+<font color=red>     0..|  	NewVars = ssam_util:updated_props(OldVars, Attrs),</font>
+<font color=red>     0..|  	State1 = State#ssaml{vars = NewVars},</font>
+<font color=red>     0..|  	{next, State1}.</font>
+        |  
+        |  app_select(_, Data, State) -&gt;
+<font color=red>     0..|  	{continue, Data, State}.</font>
+        |  
+        |  app_case(Attrs, Data, State) -&gt;
+<font color=red>     0..|  	case check_regex(Attrs, State) of</font>
+<font color=red>     0..|  		{true, State1} -&gt; {select, Data, State1};</font>
+<font color=red>     0..|  		{false, State1} -&gt; {next, State1}</font>
+        |  	end.
+        |  
+        |  app_if(Attrs, Data, State) -&gt;
+<font color=red>     0..|  	case check_regex(Attrs, State) of</font>
+<font color=red>     0..|  		{true, State1} -&gt; {continue, Data, State1};</font>
+<font color=red>     0..|  		{false, State1} -&gt; {next, State1}</font>
+        |  	end.
+        |  
+        |  app_goto([], _, State) -&gt;
+<font color=red>     0..|  	{next, State};</font>
+        |  app_goto(Attrs, _, State) -&gt;
+<font color=red>     0..|  	Action = proplists:get_value("action", Attrs, []),</font>
+<font color=red>     0..|  	Return = proplists:get_value("return", Attrs, []),</font>
+<font color=red>     0..|  	Element = action(Action, State#ssaml.doc),</font>
+<font color=red>     0..|  	case Return of</font>
+<font color=red>     0..|  		"yes" -&gt; {continue, Element, State};</font>
+<font color=red>     0..|  		_ -&gt; {break, Element, State}</font>
+        |  	end.
+        |  
+        |  app_include(_, _, State) -&gt;
+<font color=red>     0..|  	{next, State}.</font>
+        |  
+        |  app_loop(Attrs, Data, State) -&gt;
+<font color=red>     0..|  	CountStr = proplists:get_value("count", Attrs, "1"),</font>
+<font color=red>     0..|  	case string:to_integer(CountStr) of</font>
+        |  		{error, _} -&gt;
+<font color=red>     0..|  			{next, State};</font>
+        |  		{N, _Rest} when is_number(N), N &gt; 1 -&gt;
+<font color=red>     0..|  			Count = if N &gt; ?APP_LOOP_MAXCOUNT -&gt; ?APP_LOOP_MAXCOUNT;</font>
+<font color=red>     0..|  					   true -&gt; N end,</font>
+<font color=red>     0..|  			{continue, copied(Data, Count), State};</font>
+        |  		_ -&gt;
+<font color=red>     0..|  			{continue, Data, State}</font>
+        |  	end.
+        |  
+        |  app_action(_, _, State) -&gt;
+<font color=red>     0..|  	{next, State}.</font>
+        |  
+        |  app_exit(_, _, State) -&gt;
+<font color=red>     0..|  	{exit, State}.</font>
+        |  
+        |  app_continue(_, Data, State) -&gt;
+<font color=red>     0..|  	{continue, Data, State}.</font>
+        |  
+        |  app_break(_, Data, State) -&gt;
+<font color=red>     0..|  	{break, Data, State}.</font>
+        |  
+        |  app_stop(_, _, State) -&gt;
+<font color=red>     0..|  	{stop, State}.</font>
+        |  
+        |  '_temporary'() -&gt;
+<font color=red>     0..|  	trimmed(''),</font>
+<font color=red>     0..|  	httpc_request('','','').</font>
+        |  
+        |  %% Private functions
+        |  
+        |  -define(MODULE_AML, "ssam_aml").
+        |  -define(MODULE_MESSAGE_AML, "ssam_message_aml").
+        |  -define(MODULE_TELEPHONY_AML, "ssam_telephony_aml").
+        |  
+<font color=red>     0..|  module(_, "topic") -&gt; ?MODULE_MESSAGE_AML;</font>
+<font color=red>     0..|  module(_, "sms") -&gt; ?MODULE_MESSAGE_AML;</font>
+<font color=red>     0..|  module(_, "mms") -&gt; ?MODULE_MESSAGE_AML;</font>
+        |  
+<font color=red>     0..|  module(_, "answer") -&gt; ?MODULE_TELEPHONY_AML;</font>
+<font color=red>     0..|  module(_, "hangup") -&gt; ?MODULE_TELEPHONY_AML;</font>
+<font color=red>     0..|  module(_, "say") -&gt; ?MODULE_TELEPHONY_AML;</font>
+<font color=red>     0..|  module(_, "play") -&gt; ?MODULE_TELEPHONY_AML;</font>
+<font color=red>     0..|  module(_, "input") -&gt; ?MODULE_TELEPHONY_AML;</font>
+<font color=red>     0..|  module(_, "bridge") -&gt; ?MODULE_TELEPHONY_AML;</font>
+<font color=red>     0..|  module(_, "message") -&gt; ?MODULE_TELEPHONY_AML;</font>
+<font color=red>     0..|  module(_, "conference") -&gt; ?MODULE_TELEPHONY_AML;</font>
+        |  
+<font color=red>     0..|  module(_, _) -&gt; ?MODULE_AML.</font>
+        |  
+        |  trimmed(Subject) -&gt;
+<font color=red>     0..|  	trimmed(Subject, "^[\r\n\t\s]*|[\r\n\t\s]*$").</font>
+        |  
+        |  trimmed(Subject, Regex) -&gt;
+<font color=red>     0..|  	re:replace(Subject, Regex, "", [global, unicode, {return, list}]).</font>
+        |  
+        |  httpc_request(get, Url, []) -&gt;
+<font color=red>     0..|  	httpc_request(get, {Url, [], [], []}, [], []);</font>
+        |  httpc_request(get, Url, [_Param | Rest]) -&gt;
+<font color=red>     0..|  	httpc_request(get, Url, Rest).</font>
+        |  
+        |  httpc_request(Method,
+        |  			  {Url, Headers, ContentType, Body},
+        |  			  HttpOptions,
+        |  			  Options) -&gt;
+<font color=red>     0..|  	case httpc:request(Method,</font>
+        |  					   {Url, Headers, ContentType, Body},
+        |  					   HttpOptions,
+        |  					   Options) of
+        |  		{ok, Result} -&gt;
+<font color=red>     0..|  			{ok, Result};</font>
+        |  		{error, Reason} -&gt;
+<font color=red>     0..|  			{error, Reason}</font>
+        |  	end.
+        |  
+<font color=red>     0..|  check_regex([], State) -&gt; {true, State};</font>
+        |  check_regex([{Name, Regex} | Tail], State) -&gt;
+<font color=red>     0..|  	Vars = State#ssaml.vars,</font>
+<font color=red>     0..|  	case proplists:get_value(Name, Vars, []) of</font>
+        |  		[] -&gt;
+<font color=red>     0..|  			{false, State};</font>
+        |  		Val -&gt;
+<font color=red>     0..|  			case re:run(Val, Regex, [unicode, {capture, [1], list}]) of</font>
+        |  				{match, []} -&gt;
+<font color=red>     0..|  					check_regex(Tail, State);</font>
+        |  				{match, [Captured]} -&gt;
+<font color=red>     0..|  					NewVars = ssam_util:updated_props(Vars, [{Name ++ "_1", Captured}]),</font>
+<font color=red>     0..|  					State1 = State#ssaml{vars = NewVars},</font>
+<font color=red>     0..|  					check_regex(Tail, State1);</font>
+        |  				nomatch -&gt;
+<font color=red>     0..|  					{false, State}</font>
+        |  			end
+        |  	end.
+        |  
+        |  
+<font color=red>     0..|  action([], _) -&gt; [];</font>
+        |  action(Name, {{_, "ssaml"}, _, Data}) -&gt;
+<font color=red>     0..|  	action(Name, Data);</font>
+        |  action(Name, [{{_, "action"}, Attrs, Data} | Rest]) -&gt;
+<font color=red>     0..|  	Attrs1 = [{K, V} || {{_, K}, V} &lt;- Attrs],</font>
+<font color=red>     0..|  	case proplists:get_value("name", Attrs1, []) of</font>
+<font color=red>     0..|  		Name -&gt; Data;</font>
+<font color=red>     0..|  		_ -&gt; action(Name, Rest)</font>
+        |  	end;
+        |  action(Name, [_ | Rest]) -&gt;
+<font color=red>     0..|  	action(Name, Rest);</font>
+<font color=red>     0..|  action(_, []) -&gt; [].</font>
+        |  
+<font color=red>     0..|  copied(_, 1, Copied) -&gt; Copied;</font>
+        |  copied(List, N, Copied) when N &gt; 1 -&gt;
+<font color=red>     0..|  	Copied1 = Copied ++ List,</font>
+<font color=red>     0..|  	copied(List, N-1, Copied1).</font>
+        |  
+        |  copied(List, N) when is_list(List) -&gt;
+<font color=red>     0..|  	copied(List, N, List).</font>
+        |  
+        |  execute({{Prefix, Name}, Attrs, [Data]}, State) when is_list(Data) -&gt;
+<font color=red>     0..|  	Data1 = ssam_util:template_compiled(Data, State#ssaml.vars),</font>
+<font color=red>     0..|  	execute({{Prefix, Name}, Attrs, Data1}, State);</font>
+        |  execute({{Prefix, Name}, Attrs, Data}, State) -&gt;
+<font color=red>     0..|  	Vars = State#ssaml.vars,</font>
+<font color=red>     0..|    	Module = list_to_atom(Prefix),</font>
+<font color=red>     0..|  	Fun = list_to_atom("app_" ++ Name),</font>
+<font color=red>     0..|  	Attrs1 = [{K, ssam_util:template_compiled(V, Vars)} || {{_, K}, V} &lt;- Attrs],</font>
+<font color=red>     0..|  	case catch Module:Fun(Attrs1, Data, State) of</font>
+        |  		{'EXIT', {undef, _}} -&gt;
+<font color=red>     0..|  			{next, State};</font>
+        |  		{'EXIT', {Reason, Stack}} -&gt;
+<font color=red>     0..|  			lager:error("'EXIT' {~p, ~p}", [Reason, Stack]),</font>
+<font color=red>     0..|  			{error, Reason};</font>
+        |  		Result -&gt;
+<font color=red>     0..|  			Result</font>
+        |  	end.
+        |  
+        |  route([Element | Tail], Rests, State) when is_tuple(Element) -&gt;
+<font color=red>     0..|  	case execute(Element, State) of</font>
+        |  		{continue, Childs, State1} -&gt;
+<font color=red>     0..|  			route(Childs, [Tail] ++ Rests, State1);</font>
+        |  		{break, Childs, State1} -&gt;
+<font color=red>     0..|  			route(Childs, [], State1);</font>
+        |  		{select, Childs, State1} -&gt;
+<font color=red>     0..|  			route(Childs, Rests, State1);</font>
+        |  		{next, State1} -&gt;
+<font color=red>     0..|  			route(Tail, Rests, State1);</font>
+        |  		{exit, State1} -&gt;
+<font color=red>     0..|  			[H | T] = Rests,</font>
+<font color=red>     0..|  			route(H, T, State1);</font>
+        |  		{stop, State1} -&gt;
+<font color=red>     0..|  			{ok, stoped, State1};</font>
+        |  		{error, Error} -&gt;
+<font color=red>     0..|  			{error, Error}</font>
+        |  	end;
+        |  route([], [], State) -&gt;
+<font color=red>     0..|  	{ok, finished, State};</font>
+        |  route([], Rests, State) -&gt;
+<font color=red>     0..|  	[H | T] = Rests,</font>
+<font color=red>     0..|  	route(H, T, State);</font>
+        |  route([_ | []], _, State) -&gt;
+<font color=red>     0..|  	{error, invalid_element, State}.</font>
+        |  
+        |  
+        |  erlsom_callback(Name, _Namespace, Prefix) -&gt;
+<font color=red>     0..|  	case module(Prefix, Name) of</font>
+<font color=red>     0..|  		error -&gt; {[], Name};</font>
+<font color=red>     0..|  		Val -&gt; {Val, Name}</font>
+        |  	end.
+        |  
+        |  -ifdef(TEST_).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  
+        |  xml_depth() -&gt;
+        |  	&lt;&lt;"&lt;tellet&gt;
+        |  		&lt;if&gt;
+        |  			&lt;if&gt;
+        |  				&lt;say&gt;1&lt;/say&gt;
+        |  				&lt;if&gt;
+        |  					&lt;say&gt;2&lt;/say&gt;
+        |  					&lt;if&gt;
+        |  						&lt;say&gt;3&lt;/say&gt;
+        |  					&lt;/if&gt;
+        |  					&lt;if&gt;
+        |  						&lt;exit/&gt;
+        |  						&lt;say&gt;4&lt;/say&gt;
+        |  					&lt;/if&gt;
+        |  				&lt;/if&gt;
+        |  				&lt;if&gt;
+        |  					&lt;say&gt;5&lt;/say&gt;
+        |  				&lt;/if&gt;
+        |  			&lt;/if&gt;
+        |  			&lt;if&gt;
+        |  				&lt;say&gt;6&lt;/say&gt;
+        |  			&lt;/if&gt;
+        |  		&lt;/if&gt;
+        |  		&lt;if&gt;
+        |  			&lt;say&gt;7&lt;/say&gt;
+        |  		&lt;/if&gt;
+        |      &lt;/tellet&gt;"&gt;&gt;.
+        |  
+        |  xml_set() -&gt;
+        |  	&lt;&lt;"&lt;tellet&gt;
+        |  		&lt;say&gt;안녕하세요?&lt;/say&gt;
+        |  		&lt;set name=\"맹영국\" age=\"36\"/&gt;
+        |  		&lt;say&gt;{{name}}: 내 이름은 {{name}}, 나이는 {{age}}세 입니다.&lt;/say&gt;
+        |  		&lt;set code=\"\"&gt;
+        |  			&lt;![CDATA[
+        |  				function matchwo(a,b)
+        |  				{
+        |  					if (a &lt; b &amp;&amp; a &lt; 0) then {
+        |  						return 1;
+        |  					}
+        |  					else {
+        |  					  return 0;
+        |  					}
+        |  				}
+        |  			]]&gt;
+        |  		&lt;/set&gt;
+        |      &lt;/tellet&gt;"&gt;&gt;.
+        |  
+        |  xml_if() -&gt;
+        |  	&lt;&lt;"&lt;tellet&gt;
+        |  		&lt;set name=\"Kook\"/&gt;
+        |  		&lt;if name=\"^[kK]ook$\"&gt;
+        |  			&lt;say&gt;I'm {{name}}!&lt;/say&gt;
+        |  			&lt;break&gt;
+        |  				&lt;say&gt;Good bye!&lt;/say&gt;
+        |  			&lt;/break&gt;
+        |  		&lt;/if&gt;
+        |  		&lt;say&gt;I'm not Kook!&lt;/say&gt;
+        |      &lt;/tellet&gt;"&gt;&gt;.
+        |  
+        |  xml_loop() -&gt;
+        |  	&lt;&lt;"&lt;tellet&gt;
+        |  		&lt;loop count=\"2\"&gt;
+        |  			&lt;say&gt;1&lt;/say&gt;
+        |  			&lt;loop count=\"1\"&gt;
+        |  				&lt;say&gt;2&lt;/say&gt;
+        |  			&lt;/loop&gt;
+        |  			&lt;loop&gt;  &lt;!-- same as continue --&gt;
+        |  				&lt;say&gt;3&lt;/say&gt;
+        |  			&lt;/loop&gt;
+        |  			&lt;loop count=\"wrong\"&gt; &lt;!-- ignored --&gt;
+        |  				&lt;say&gt;4&lt;/say&gt;
+        |  			&lt;/loop&gt;
+        |  		&lt;/loop&gt;
+        |  		&lt;say&gt;Good bye!&lt;/say&gt;
+        |      &lt;/tellet&gt;"&gt;&gt;.
+        |  
+        |  xml_select() -&gt;
+        |  	&lt;&lt;"&lt;tellet&gt;
+        |  		&lt;set name=\"kook\"/&gt;
+        |  		&lt;select&gt;
+        |  			&lt;case name=\"^[kK]ook\"&gt;
+        |  				&lt;say&gt;I'm Kook!&lt;/say&gt;
+        |  			&lt;/case&gt;
+        |  			&lt;case&gt;
+        |  				&lt;say&gt;IGNORED!&lt;/say&gt;
+        |  			&lt;/case&gt;
+        |  		&lt;/select&gt;
+        |      &lt;/tellet&gt;"&gt;&gt;.
+        |  
+        |  xml_goto_local() -&gt;
+        |  	&lt;&lt;"&lt;tellet&gt;
+        |  		&lt;action name=\"1\"&gt;
+        |  			&lt;say&gt;action 1 - start&lt;/say&gt;
+        |  			&lt;goto action=\"2\" return=\"yes\"/&gt;
+        |  			&lt;say&gt;action 1 - end&lt;/say&gt;
+        |  		&lt;/action&gt;
+        |  
+        |  		&lt;if&gt;
+        |  			&lt;if&gt;
+        |  				&lt;say&gt;1&lt;/say&gt;
+        |  				&lt;if&gt;
+        |  					&lt;say&gt;2&lt;/say&gt;
+        |  					&lt;if&gt;
+        |  						&lt;goto action=\"1\" return=\"yes\"/&gt;
+        |  						&lt;say&gt;3&lt;/say&gt;
+        |  					&lt;/if&gt;
+        |  				&lt;/if&gt;
+        |  			&lt;/if&gt;
+        |  			&lt;if&gt;
+        |  				&lt;say&gt;4&lt;/say&gt;
+        |  			&lt;/if&gt;
+        |  		&lt;/if&gt;
+        |  
+        |  		&lt;action name=\"2\"&gt;
+        |  			&lt;say&gt;action 2&lt;/say&gt;
+        |  		&lt;/action&gt;
+        |  
+        |  		&lt;say&gt;5&lt;/say&gt;
+        |      &lt;/tellet&gt;"&gt;&gt;.
+        |  
+        |  xml_goto_remote() -&gt;
+        |  	&lt;&lt;"&lt;tellet&gt;
+        |  		&lt;goto url=\"http://example.com\" action=\"action-1\"&gt;
+        |  			&lt;param
+        |  				from=\"kook\"
+        |  				to=\"maeng\"
+        |  				title=\"Hello, world!\"
+        |  			/&gt;
+        |  		&lt;/goto&gt;
+        |      &lt;/tellet&gt;"&gt;&gt;.
+        |  
+        |  xml_include() -&gt;
+        |  	&lt;&lt;"&lt;tellet&gt;
+        |  		&lt;include url=\"http://example.com\" method=\"get\"&gt;
+        |  			&lt;param
+        |  				from=\"kook\"
+        |  				to=\"maeng\"
+        |  				title=\"Hello, world!\"
+        |  			/&gt;
+        |  		&lt;/goto&gt;
+        |      &lt;/tellet&gt;"&gt;&gt;.
+        |  
+        |  
+        |  parse_test() -&gt;
+        |      Xmls = [
+        |  			%xml_depth(),
+        |  			%xml_set(),
+        |  			%xml_if(),
+        |  			%xml_loop(),
+        |  			%xml_select(),
+        |  			xml_goto_local()
+        |  			%xml_goto_remote()
+        |  		   ],
+        |  	F = fun(Xml) -&gt;
+        |  		Result = start(Xml, #ssaml{}),
+        |  		io:format(user, "~n~nResult: ~p~n", [Result])
+        |  	end,
+        |  	[F(X) || X &lt;- Xmls].
+        |  
+        |  -endif.
+</pre>
+</body>
+</html>

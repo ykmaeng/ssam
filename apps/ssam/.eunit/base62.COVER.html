@@ -1,0 +1,51 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/base62.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/base62.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% base62 encoding - initial idea based on riak's encoding, with no if's and fixed base
+        |  %% gleicon - 2010
+        |  %% 
+        |  %% testing:
+        |  %% 0&gt; c(base62.erl). 
+        |  %% 1&gt; base62:decode(base62:encode(1000)) == 1000.
+        |  %% charlist removed thanks to freenode's #erlang
+        |  %%
+        |   
+        |  -module(base62).
+        |  -export([encode/1, decode/1]).
+        |   
+<font color=red>     0..|  numbychar(I) when I &gt;= 36 -&gt; I-36+$a;</font>
+<font color=red>     0..|  numbychar(I) when I &gt;= 10 -&gt; I-10+$a;</font>
+<font color=red>     0..|  numbychar(I) -&gt; I+$0.</font>
+        |   
+<font color=red>     0..|  nthchar(N) when N =&lt; 9 -&gt; $0 + N;</font>
+<font color=red>     0..|  nthchar(N) when N =&lt; 35 -&gt; $A +N - 10;</font>
+<font color=red>     0..|  nthchar(N) -&gt; $a + N - 36.</font>
+        |   
+<font color=red>     0..|  encode(Id) -&gt; encode(Id, []).</font>
+<font color=red>     0..|  encode(Id, Acc) when Id &lt; 0 -&gt; encode(-Id, Acc); </font>
+<font color=red>     0..|  encode(Id, []) when Id =:= 0 -&gt; "0";</font>
+<font color=red>     0..|  encode(Id, Acc) when Id =:= 0 -&gt; Acc;</font>
+        |  encode(Id, Acc) -&gt;
+<font color=red>     0..|  	R = Id rem 62,</font>
+<font color=red>     0..|  	Id1 = Id div 62,</font>
+<font color=red>     0..|  	Ac1 = [nthchar(R)-1|Acc],</font>
+<font color=red>     0..|  	encode(Id1, Ac1).</font>
+        |   
+        |  decode(Str) -&gt;
+<font color=red>     0..|  	decode(lists:reverse(Str), lists:flatlength(Str), 0).	</font>
+<font color=red>     0..|  decode([], _, Acc) -&gt; erlang:trunc(Acc);</font>
+        |  decode(Str, Olen, Acc) -&gt;
+<font color=red>     0..|  	[B|C] = Str,</font>
+<font color=red>     0..|  	Pos = Acc + numbychar(B) * math:pow(62, Olen - lists:flatlength(Str)),</font>
+<font color=red>     0..|  	decode(C, Olen, Pos).</font>
+</pre>
+</body>
+</html>

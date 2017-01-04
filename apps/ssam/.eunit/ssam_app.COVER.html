@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_app.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_app.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_app).
+        |  
+        |  -behaviour(application).
+        |  
+        |  %% Application callbacks
+        |  -export([start/2, stop/1]).
+        |  
+        |  -include("ssam.hrl").
+        |  
+        |  %% ===================================================================
+        |  %% Application callbacks
+        |  %% ===================================================================
+        |  
+        |  start(_StartType, _StartArgs) -&gt;
+<font color=red>     0..|  	application:ensure_started(crypto),</font>
+<font color=red>     0..|  	application:ensure_started(ssl),</font>
+<font color=red>     0..|  	application:ensure_started(inets),</font>
+<font color=red>     0..|  	application:ensure_started(ranch),</font>
+<font color=red>     0..|  	application:ensure_started(cowboy),</font>
+        |  
+<font color=red>     0..|      case ssam_sup:start_link() of</font>
+        |          {ok, Pid} -&gt;
+<font color=red>     0..|  			ok = setup_buckets(),</font>
+<font color=red>     0..|  			ok = load_config(),</font>
+<font color=red>     0..|  			ok = start_sup_childs(),</font>
+<font color=red>     0..|  			ok = start_rest_server(),</font>
+<font color=red>     0..|  			ok = start_services(),</font>
+<font color=red>     0..|  			ok = ssam_vnode:service_up(),</font>
+<font color=red>     0..|  			{ok, Pid};</font>
+        |          {error, Reason} -&gt;
+<font color=red>     0..|              {error, Reason}</font>
+        |      end.
+        |  
+        |  stop(_State) -&gt;
+<font color=red>     0..|      ok.</font>
+        |  
+        |  load_config() -&gt;
+<font color=red>     0..|  	ssam_conf:set(?PROJECT, ssam:configs()).</font>
+        |  
+        |  start_rest_server() -&gt;
+<font color=red>     0..|  	{ok, Port} = application:get_env(ssam, api_port),</font>
+<font color=red>     0..|  	ok = ssam_cowboy:start_protocol(https, Port, []),</font>
+<font color=red>     0..|  	ok = ssam_cowboy:delete_routes(),</font>
+<font color=red>     0..|  	ok = ssam_cowboy:add_routes(ssam:routes()),</font>
+<font color=red>     0..|  	lager:info("ok"),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  start_sup_childs() -&gt;
+<font color=red>     0..|  	Childs = [</font>
+        |  		{ssam_mailc,
+        |  			{ssam_mailc, start_link, [_Args = []]},
+        |  			permanent, 5000, worker, [ssam_mailc]
+        |  		}
+        |  	],
+<font color=red>     0..|  	[{ok, _} = ssam_sup:add_child(Child) || Child &lt;- Childs],</font>
+<font color=red>     0..|  	lager:info("ok"),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  start_services() -&gt;
+<font color=red>     0..|  	ok = ssam:start_service(ssam_monitor),</font>
+<font color=red>     0..|  	ok = ssam:start_service(ssam_account),</font>
+<font color=red>     0..|  	ok = ssam:start_service(ssam_message),</font>
+<font color=red>     0..|  	ok = ssam:start_service(ssam_telephony),</font>
+<font color=red>     0..|  	ok = ssam:start_service(ssam_storage),</font>
+<font color=red>     0..|  	lager:info("ok"),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  setup_buckets() -&gt;
+<font color=red>     0..|  	ok = ssam_riakc:set_bucket(?BUCKET_CACHE, [{backend, ?BACKEND_MEMORY_DAY}]),</font>
+<font color=red>     0..|  	lager:info("ok"),</font>
+<font color=red>     0..|  	ok.</font>
+</pre>
+</body>
+</html>

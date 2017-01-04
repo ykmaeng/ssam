@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_account_user_resource.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_account/.eunit/ssam_account_user_resource.erl by COVER 2014-10-10 at 15:20:03
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_account_user_resource).
+        |  
+        |  %-compile(export_all).
+        |  -export([get/2,
+        |  		 post/2,
+        |  		 put/2]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_account.hrl").
+        |  
+        |  
+        |  %% Public functions
+        |  
+        |  get(#request{
+        |  	   uri = [&lt;&lt;"users"&gt;&gt;, UserId]
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_account:get_user(UserId) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Doc, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  
+        |  get(#request{
+        |  	   uri = [&lt;&lt;"accounts"&gt;&gt;, Sid]
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_account:get_account(Sid) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Doc, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  
+        |  get(#request{
+        |  	   uri = [&lt;&lt;"users"&gt;&gt;, UserId, &lt;&lt;"authority"&gt;&gt;]
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	Sid = proplists:get_value(&lt;&lt;"sid"&gt;&gt;, Request#request.params),</font>
+<font color=red>     0..|  	case ssam_account:get_users_authoirty(UserId, Sid) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response_type(?html, Doc, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end.
+        |  
+        |  post(#request{
+        |  		uri = [&lt;&lt;"keys"&gt;&gt;],
+        |  		account_sid = Sid, body = Props
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:post -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	TTL = case proplists:get_value(&lt;&lt;"ttl"&gt;&gt;, Props) of</font>
+<font color=red>     0..|  		?undefined -&gt; ?AUTH_KEY_MAX_AGE;</font>
+        |  		Val -&gt;
+<font color=red>     0..|  			case catch binary_to_integer(Val) of</font>
+<font color=red>     0..|  				Num when is_number(Num) -&gt; Num;</font>
+<font color=red>     0..|  				_ -&gt; ?AUTH_KEY_MAX_AGE</font>
+        |  			end
+        |  	end,
+<font color=red>     0..|  	case ssam_account:post_key(Sid, TTL) of</font>
+        |  		{ok, Key} -&gt;
+<font color=red>     0..|  			Doc = {[</font>
+        |  					{&lt;&lt;"key"&gt;&gt;, Key},
+        |  					{&lt;&lt;"path"&gt;&gt;, &lt;&lt;"/"&gt;&gt;},
+        |  					{&lt;&lt;"secure"&gt;&gt;, true},
+        |  					{&lt;&lt;"max_age"&gt;&gt;, TTL}
+        |  				   ]},
+<font color=red>     0..|  			Resp = ssam_rest:response(?STATUS_CREATED, Doc, Request),</font>
+        |  			%Resp1 = Resp#response{
+        |  					  %cookies = [{&lt;&lt;"key"&gt;&gt;, Key,
+        |  								  %[{path, "/"}, {secure, true}, {max_age, TTL}
+        |  								  %]}]
+        |  					 %},
+<font color=red>     0..|  			{ok, Resp};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_CONFLICT, Error, Request)}</font>
+        |  	end;
+        |  
+        |  
+        |  post(#request{
+        |  		uri = [&lt;&lt;"users"&gt;&gt;],
+        |  		body = Props
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:post -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	UserId = proplists:get_value(&lt;&lt;"id"&gt;&gt;, Props),</font>
+<font color=red>     0..|  	case ssam_account:post_user(UserId, Props) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(?STATUS_CREATED, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_CONFLICT, Error, Request)}</font>
+        |  	end;
+        |  
+        |  
+        |  post(#request{
+        |  		uri = [&lt;&lt;"users"&gt;&gt;, UserId, &lt;&lt;"authority"&gt;&gt;],
+        |  		body = Props
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:post -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	Sid = proplists:get_value(&lt;&lt;"sid"&gt;&gt;, Request#request.params),</font>
+<font color=red>     0..|  	Name = proplists:get_value(&lt;&lt;"name"&gt;&gt;, Props),</font>
+<font color=red>     0..|  	Password = proplists:get_value(&lt;&lt;"password"&gt;&gt;, Props),</font>
+<font color=red>     0..|  	case ssam_account:post_users_authority(UserId, Name, Password, Sid) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(?STATUS_CREATED, Doc, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_CONFLICT, Error, Request)}</font>
+        |  	end.
+        |  
+        |  put(#request{
+        |  		uri = [&lt;&lt;"users"&gt;&gt;, UserId],
+        |  		body = Props
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:put -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	UserPw = proplists:get_value(&lt;&lt;"password"&gt;&gt;, Props),</font>
+<font color=red>     0..|  	Props1 = proplists:delete(&lt;&lt;"password"&gt;&gt;, Props),</font>
+<font color=red>     0..|  	case ssam_account:put_user(UserId, UserPw, Props1) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end.
+        |  
+        |  
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  
+        |  
+</pre>
+</body>
+</html>

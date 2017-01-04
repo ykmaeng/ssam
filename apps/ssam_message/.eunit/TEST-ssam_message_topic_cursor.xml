@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite tests="2" failures="0" errors="0" skipped="0" time="0.010" name="module 'ssam_message_topic_cursor'">
+  <testcase time="0.003" name="ssam_message_topic_cursor:cursor_tests/0_0" description="cursor_load"/>
+  <testcase time="0.003" name="ssam_message_topic_cursor:cursor_tests/0_0" description="cursor_update"/>
+</testsuite>

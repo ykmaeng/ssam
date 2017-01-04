@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_telephony_aml.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_telephony/.eunit/ssam_telephony_aml.erl by COVER 2014-10-07 at 16:20:12
+
+****************************************************************************
+
+        |  -module(ssam_telephony_aml).
+        |  
+        |  -compile(export_all).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_telephony.hrl").
+        |  
+        |  app_answer(Attrs, Data, State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:app_answer -&gt; Attrs: ~p, Data: ~p", [?MODULE, Attrs, Data]),	</font>
+<font color=red>     0..|  	{next, State}.</font>
+        |  
+        |  app_hangup(Attrs, Data, #ssaml{state = Channel} = State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:app_hangup -&gt; Attrs: ~p, Data: ~p", [?MODULE, Attrs, Data]),	</font>
+<font color=red>     0..|  	#telephony_channel{node_fs = Node, uuid = UUID} = Channel,</font>
+<font color=red>     0..|  	Res = send_msg(Node, UUID, hangup),</font>
+<font color=red>     0..|  	lager:debug("~p:handle_event -&gt; send_msg(sleep) Res: ~p", [?MODULE, Res]),</font>
+<font color=red>     0..|  	{next, State}.</font>
+        |  
+        |  app_play(Attrs, Data, #ssaml{state = Channel} = State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:app_playback -&gt; Attrs: ~p, Data: ~p", [?MODULE, Attrs, Data]),</font>
+<font color=red>     0..|  	#telephony_channel{node_fs = Node, uuid = UUID} = Channel,</font>
+<font color=red>     0..|  	case proplists:get_value("terminators", Attrs) of</font>
+<font color=red>     0..|  		?undefined -&gt; ?undefined;</font>
+<font color=red>     0..|  		"" -&gt; send_msg(Node, UUID, set, "playback_terminators=none");</font>
+<font color=red>     0..|  		Terms -&gt; send_msg(Node, UUID, set, "playback_terminators="++Terms)</font>
+        |  	end,
+<font color=red>     0..|  	Arg = "ivr/" ++ Data ++ ".wav", %% @todo </font>
+<font color=red>     0..|  	Res = send_msg_locked(Node, UUID, playback, Arg),</font>
+<font color=red>     0..|  	lager:debug("~p:handle_event -&gt; send_msg_locked(playback) Res: ~p", [?MODULE, Res]),</font>
+<font color=red>     0..|  	wait_for_complete(State),</font>
+<font color=red>     0..|  	{next, State}.</font>
+        |  
+        |  
+        |  app_say(Attrs, Data, #ssaml{state = Channel} = State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:app_say -&gt; Attrs: ~p, Data: ~p", [?MODULE, Attrs, Data]),	</font>
+<font color=red>     0..|  	#telephony_channel{node_fs = Node, uuid = UUID} = Channel,</font>
+<font color=red>     0..|  	case proplists:get_value("terminators", Attrs, "") of</font>
+<font color=red>     0..|  		"" -&gt; send_msg(Node, UUID, set, "playback_terminators=none");</font>
+<font color=red>     0..|  		Terms -&gt; send_msg(Node, UUID, set, "playback_terminators="++Terms)</font>
+        |  	end,
+        |  	%Data1 = http_uri:encode(Data),
+<font color=red>     0..|  	Data1 = http_uri:encode(Data),</font>
+<font color=red>     0..|  	Lang = case proplists:get_value("lang", Attrs, "") of</font>
+<font color=red>     0..|  		"" -&gt; "en"; Lang_ -&gt; Lang_</font>
+        |      end,
+<font color=red>     0..|  	Arg = "shout://translate.google.com/translate_tts?tl=" ++ Lang ++ "&amp;q=" ++ Data1,</font>
+<font color=red>     0..|  	Res = send_msg_locked(Node, UUID, playback, Arg),</font>
+<font color=red>     0..|  	lager:debug("~p:handle_event -&gt; send_msg_locked(say) Res: ~p", [?MODULE, Res]),</font>
+<font color=red>     0..|  	wait_events([&lt;&lt;"PLAYBACK_STOP"&gt;&gt;], State),</font>
+<font color=red>     0..|  	{next, State}.</font>
+        |  
+        |  
+        |  app_input(Attrs, Data, #ssaml{state = Channel} = State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:app_input -&gt; Attrs: ~p, Data: ~p", [?MODULE, Attrs, Data]),	</font>
+<font color=red>     0..|  	#telephony_channel{node_fs = Node, uuid = UUID} = Channel,</font>
+<font color=red>     0..|  	Lang = proplists:get_value("lang", Attrs, "en"),</font>
+<font color=red>     0..|  	Min = proplists:get_value("min", Attrs, "0"),</font>
+<font color=red>     0..|  	Max = proplists:get_value("max", Attrs, "128"),</font>
+<font color=red>     0..|  	Play = case proplists:get_value("file", Attrs, "") of</font>
+        |  		"" -&gt;
+<font color=red>     0..|  			case proplists:get_value("say", Attrs, "") of</font>
+<font color=red>     0..|  				"" -&gt; "tone_stream://L=100;%(100,100,350,440)";</font>
+        |  				Play_ -&gt; "shout://translate.google.com/translate_tts?tl="
+<font color=red>     0..|  						 ++ Lang ++ "&amp;q=" ++ http_uri:encode(Play_)</font>
+        |  			end;
+        |  		Play_ -&gt;
+<font color=red>     0..|  			Play_</font>
+        |  	end,
+<font color=red>     0..|  	Var = proplists:get_value("var", Attrs, "input"),</font>
+<font color=red>     0..|  	Var1 = "tellet_" ++ Var,</font>
+<font color=red>     0..|  	Timeout = proplists:get_value("timeout", Attrs, "5000"),</font>
+<font color=red>     0..|  	Terminators = proplists:get_value("terminators", Attrs, "#"),</font>
+<font color=red>     0..|  	Arg = string:join([Min, Max, Play, Var1, Timeout, Terminators], " "),</font>
+<font color=red>     0..|  	Res = send_msg_locked(Node, UUID, read, Arg),</font>
+<font color=red>     0..|  	lager:debug("~p:handle_event -&gt; send_msg_locked(read) Res: ~p", [?MODULE, Res]),</font>
+<font color=red>     0..|  	case wait_events([&lt;&lt;"DTMF"&gt;&gt;, &lt;&lt;"CHANNEL_HANGUP"&gt;&gt;], State) of</font>
+        |  		{ok, {&lt;&lt;"DTMF"&gt;&gt;, _, State}} -&gt;
+<font color=red>     0..|  			case wait_for_complete(State) of</font>
+        |  				{ok, {&lt;&lt;"CHANNEL_EXECUTE_COMPLETE"&gt;&gt;, Props, State}} -&gt;
+<font color=red>     0..|  					Input = proplists:get_value(</font>
+        |  							  &lt;&lt;"variable_", (list_to_binary(Var1))/bits&gt;&gt;, Props, &lt;&lt;&gt;&gt;),
+<font color=red>     0..|  					Vars = [{Var, Input} | State#ssaml.vars],</font>
+<font color=red>     0..|  					lager:debug("~p:app_input -&gt; ~p: ~p, Vars: ~p", [?MODULE, Var, Input, Vars]),</font>
+<font color=red>     0..|  					State1 = State#ssaml{vars = Vars},	</font>
+<font color=red>     0..|  					{continue, Data, State1};</font>
+        |  				_ -&gt;
+<font color=red>     0..|  					{stop, State}</font>
+        |  			end;
+        |  		_ -&gt;
+<font color=red>     0..|  			{stop, State}</font>
+        |  	end.
+        |  
+        |  
+        |  app_bridge(Attrs, Data, #ssaml{state = Channel} = State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:app_bridge -&gt; Attrs: ~p, Data: ~p", [?MODULE, Attrs, Data]),	</font>
+<font color=red>     0..|  	#telephony_channel{node_fs = Node, uuid = UUID} = Channel,</font>
+<font color=red>     0..|  	Res = send_msg_locked(Node, UUID, bridge, Data),</font>
+<font color=red>     0..|  	lager:debug("~p:handle_event -&gt; send_msg(bridge) Res: ~p", [?MODULE, Res]),</font>
+<font color=red>     0..|  	wait_for_complete(State),</font>
+<font color=red>     0..|  	{next, State}.</font>
+        |  
+        |  
+        |  app_sleep(Attrs, Data, #ssaml{state = Channel} = State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:app_sleep -&gt; Attrs: ~p, Data: ~p", [?MODULE, Attrs, Data]),	</font>
+<font color=red>     0..|  	#telephony_channel{node_fs = Node, uuid = UUID} = Channel,</font>
+<font color=red>     0..|  	Res = send_msg(Node, UUID, sleep, Data),</font>
+<font color=red>     0..|  	lager:debug("~p:handle_event -&gt; send_msg(sleep) Res: ~p", [?MODULE, Res]),</font>
+<font color=red>     0..|  	{next, State}.</font>
+        |  
+        |  
+        |  -define(MAX_WAIT_EVENT, 60*1000).
+        |  wait_events(Events, State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:wait_events -&gt; wait ~p", [?MODULE, Events]),</font>
+<font color=red>     0..|  	wait_events(Events, State, ?MAX_WAIT_EVENT).</font>
+        |  
+        |  wait_events(Events, State, Timeout) when is_binary(Events) -&gt;
+<font color=red>     0..|  	wait_events([Events], State, Timeout);</font>
+        |  wait_events([], State, _) -&gt;
+<font color=red>     0..|  	{error, State};</font>
+        |  wait_events(Events, State, Timeout) -&gt;
+<font color=red>     0..|  	receive</font>
+        |  		{call_event, Data} -&gt;
+<font color=red>     0..|  			{event, [UUID | Rest]} = Data,</font>
+<font color=red>     0..|  			Event = proplists:get_value(&lt;&lt;"Event-Name"&gt;&gt;, Rest),</font>
+<font color=red>     0..|  			lager:debug("~p:wait_event -&gt; ~p, ~p", [?MODULE, UUID, Event]),</font>
+<font color=red>     0..|  			case lists:member(Event, Events) of</font>
+        |  				true -&gt;
+<font color=red>     0..|  					lager:debug("~p:wait_events -&gt; ok, ~p", [?MODULE, Event]),</font>
+<font color=red>     0..|  	 				{ok, {Event, Rest, State}};</font>
+        |  				false -&gt;
+<font color=red>     0..|  					wait_events(Events, State, Timeout)</font>
+        |  			end;
+        |  		{call_hangup, _Data} -&gt;
+<font color=red>     0..|  			lager:debug("~p:wait_events -&gt; hangup", [?MODULE]),</font>
+<font color=red>     0..|  			{hangup, State}</font>
+        |  	after
+        |  		Timeout -&gt;
+<font color=red>     0..|  			lager:debug("~p:wait_events -&gt; timeout", [?MODULE]),</font>
+<font color=red>     0..|  			{timeout, State}</font>
+        |  	end.
+        |  
+        |  wait_for_complete(State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:wait_for_complete -&gt; wait..", [?MODULE]),</font>
+<font color=red>     0..|  	{Result, Rest} = wait_events([&lt;&lt;"CHANNEL_EXECUTE_COMPLETE"&gt;&gt;,</font>
+        |  								  &lt;&lt;"CHANNEL_HANGUP"&gt;&gt;,
+        |  								  &lt;&lt;"CHANNEL_HANGUP_COMPLETE"&gt;&gt;], State),
+<font color=red>     0..|  	lager:debug("~p:wait_for_complete -&gt; ~p", [?MODULE, Result]),</font>
+<font color=red>     0..|  	{Result, Rest}.</font>
+        |  
+        |  
+        |  send_msg(Node, UUID, Cmd) -&gt;
+<font color=red>     0..|  	send_msg(Node, UUID, Cmd, "").</font>
+        |  
+        |  send_msg(Node, UUID, Cmd, Arg) -&gt;
+<font color=red>     0..|  	ssam_telephony_dialplan:send_msg(Node, UUID, Cmd, Arg).</font>
+        |  
+        |  send_msg_locked(Node, UUID, Cmd, Arg) -&gt;
+<font color=red>     0..|  	ssam_telephony_dialplan:send_msg_locked(Node, UUID, Cmd, Arg).</font>
+        |  
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  
+        |  
+        |  -endif.
+        |  
+</pre>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message.erl by COVER 2014-10-08 at 11:23:44
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_message).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_message.hrl").
+        |  
+        |  
+        |  %% Callback
+        |  -export([
+        |  		 configs/0,
+        |  		 routes/0
+        |  		]).
+        |  
+        |  %% Public
+        |  -export([
+        |  		 get_topics_update/4
+        |  		]).
+        |  
+        |  
+        |  %% Callback functions
+        |  
+        |  configs() -&gt;
+<font color=red>     0..|  	File = code:priv_dir(ssam_message) ++ "/conf/ssam_message.conf",</font>
+<font color=red>     0..|  	case file:consult(File) of</font>
+<font color=red>     0..|  		{ok, Props} -&gt; Props;</font>
+<font color=red>     0..|  		{error, _} -&gt; ?undefined </font>
+        |  	end.
+        |  
+        |  routes() -&gt;
+<font color=red>     0..|  	proplists:get_value(routes, configs(), ?undefined).</font>
+        |  
+        |  %% Public functions
+        |  
+        |  
+        |  get_topics(AccountSid) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"topics"&gt;&gt;, []}],</font>
+<font color=red>     0..|  	case ssam_resource:get(AccountSid, ?SERVICE, Uri) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			{ok, Doc};</font>
+        |  		{?error, {?invalid_collection_name, _, _}} -&gt;
+<font color=red>     0..|  			{ok, []};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, Error}</font>
+        |  	end.
+        |  
+        |  get_topic(AccountSid, TopicId) -&gt;
+<font color=red>     0..|  	Uri = [{&lt;&lt;"topics"&gt;&gt;, TopicId}],</font>
+<font color=red>     0..|  	ssam_resource:get(AccountSid, ?SERVICE, Uri).</font>
+        |  
+        |  
+        |  get_topics_update(ReqId, AccountSid, TopicId, Props) -&gt;
+<font color=red>     0..|  	Topic = topic(AccountSid, TopicId),</font>
+<font color=red>     0..|  	TopicReq =</font>
+        |  		#topic_request{
+        |  		   id = ReqId,
+        |  		   account_sid = AccountSid,
+        |  		   topic = Topic,
+        |  		   command = ?subscribe,
+        |  		   transport = ?rest,
+        |  		   body = Props
+        |  	},
+<font color=red>     0..|  	ok = ssam_message_topic_route:go(TopicReq),</font>
+<font color=red>     0..|  	{ok, Topic#topic.key}.</font>
+        |  
+        |  	
+        |  
+        |  
+        |  topic(AccountSid, TopicId) -&gt;
+<font color=red>     0..|  	case ssam_message_topic:topic(AccountSid, TopicId) of</font>
+        |  		?undefined -&gt;
+<font color=red>     0..|  			ssam_message_topic:new(AccountSid, TopicId);</font>
+        |  		Topic -&gt;
+<font color=red>     0..|  			Topic</font>
+        |  	end.
+        |  
+</pre>
+</body>
+</html>

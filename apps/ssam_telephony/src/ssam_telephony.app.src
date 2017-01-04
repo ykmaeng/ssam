@@ -1,0 +1,12 @@
+{application, ssam_telephony,
+ [
+  {description, ""},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { ssam_telephony_app, []}},
+  {env, []}
+ ]}.

@@ -1,0 +1,656 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_resource.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_resource.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_resource).
+        |  
+        |  -export([
+        |  		 get_tree/3,
+        |  		 get/3,
+        |  		 put/4,
+        |  		 post/4,
+        |  		 delete/3,
+        |  		 bucket/2
+        |  		]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  
+        |  %% Public functions
+        |  
+        |  get_tree(_, _, []) -&gt;
+<font color=red>     0..|  	{?error, ?invalid_collection_name};</font>
+        |  get_tree(_, _, [{[], _} | _]) -&gt;
+<font color=red>     0..|  	{?error, ?invalid_collection_name};</font>
+        |  get_tree(Key, Service, [{Collection, []} | _]) -&gt;
+<font color=red>     0..|  	case get_collection(Key, Service, Collection) of</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			{?error, {Reason, Collection, []}};</font>
+        |  		{ok, Items} when is_list(Items) -&gt;
+<font color=red>     0..|  			{ok, [{Items, []}]};</font>
+        |  		_ -&gt;
+<font color=red>     0..|  			{?error, {?invalid_data, Collection, []}}</font>
+        |  	end;
+        |  get_tree(Key, Service, [{Collection, Id} | Rest]) -&gt;
+<font color=red>     0..|  	case get_collection_item(Key, Service, Collection, Id) of</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			{?error, {Reason, Collection, Id}};</font>
+        |  		{ok, {Items, Item}} -&gt;
+<font color=red>     0..|  			case get_tree(Rest, [{Items, Item}]) of</font>
+        |  				{ok, Output} -&gt;
+<font color=red>     0..|  					{ok, Output};</font>
+        |  				{?error, {Reason, ErrColl, ErrId}} -&gt;
+<font color=red>     0..|  					{?error, {Reason, ErrColl, ErrId}}</font>
+        |  			end
+        |  	end;
+        |  get_tree(Key, Service, Uri) when is_list(Uri) -&gt;
+<font color=red>     0..|  	get_tree(Key, Service, path(Uri)).</font>
+        |  
+<font color=red>     0..|  get_tree([], Output) -&gt; {ok, Output};</font>
+        |  get_tree([{Collection, Id} | Rest], Output) -&gt;
+<font color=red>     0..|  	[{_, Item} | _] = Output,</font>
+<font color=red>     0..|  	case ssam_objects:value(Collection, Item) of</font>
+        |  		?undefined -&gt;
+<font color=red>     0..|  			{?error, {?invalid_collection_name, Collection, Id}};</font>
+        |  		SubItems when Id =:= [] -&gt;
+<font color=red>     0..|  			Output1 = [{SubItems, []} | Output],</font>
+<font color=red>     0..|  			{ok, Output1};</font>
+        |  		SubItems -&gt;
+<font color=red>     0..|  			case ssam_objects:object(&lt;&lt;"id"&gt;&gt;, Id, SubItems) of</font>
+        |  				[] -&gt;
+<font color=red>     0..|  					{?error, {?invalid_resource_id, Collection, Id}};</font>
+        |  				SubItem -&gt;
+<font color=red>     0..|  					Output1 = [{SubItems, SubItem} | Output],</font>
+<font color=red>     0..|  					get_tree(Rest, Output1)</font>
+        |  			end
+        |  	end.
+        |  
+        |  
+        |  
+        |  
+        |  get(_, _, []) -&gt;
+<font color=red>     0..|  	{?error, {?invalid_collection_name, [], []}};</font>
+        |  get(_, _, [{[], _} | _]) -&gt;
+<font color=red>     0..|  	{?error, {?invalid_collection_name, [], []}};</font>
+        |  get(Key, Service, [{Collection, []} | _]) -&gt;
+<font color=red>     0..|  	case get_collection(Key, Service, Collection) of</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			{?error, {Reason, Collection, []}};</font>
+        |  		{ok, Items} when is_list(Items) -&gt;
+<font color=red>     0..|  			{ok, Items};</font>
+        |  		_ -&gt;
+<font color=red>     0..|  			{?error, {?invalid_data, Collection, []}}</font>
+        |  	end;
+        |  get(Key, Service, [{Collection, Id} | Rest]) -&gt;
+<font color=red>     0..|  	case get_item(Key, Service, Collection, Id) of</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			{?error, {Reason, Collection, Id}};</font>
+        |  		{ok, Item} -&gt;
+<font color=red>     0..|  			case get(Rest, Item) of</font>
+        |  				{ok, Output} -&gt;
+<font color=red>     0..|  					{ok, Output};</font>
+        |  				{?error, {Reason, ErrColl, ErrId}} -&gt;
+<font color=red>     0..|  					{?error, {Reason, ErrColl, ErrId}}</font>
+        |  			end
+        |  	end;
+        |  get(Key, Service, Uri) when is_list(Uri) -&gt;
+<font color=red>     0..|  	get(Key, Service, path(Uri)).</font>
+        |  
+<font color=red>     0..|  get([], Output) -&gt; {ok, Output};</font>
+        |  get([{Collection, Id} | Rest], Item) -&gt;
+<font color=red>     0..|  	case ssam_objects:value(Collection, Item) of</font>
+        |  		?undefined -&gt;	
+<font color=red>     0..|  			{?error, {?invalid_collection_name, Collection, Id}};</font>
+        |  		SubItems when Id =:= [] -&gt;
+<font color=red>     0..|  			{ok, SubItems};</font>
+        |  		SubItems -&gt;
+<font color=red>     0..|  			case ssam_objects:object(&lt;&lt;"id"&gt;&gt;, Id, SubItems) of</font>
+        |  				[] -&gt;
+<font color=red>     0..|  					{?error, {?invalid_resource_id, Collection, Id}};</font>
+        |  				SubItem -&gt;
+<font color=red>     0..|  					get(Rest, SubItem)</font>
+        |  			end
+        |  	end.
+        |  
+        |  
+        |  post(Key, Service, [{Collection, Id} | _] = Path, NewItem) -&gt;
+<font color=red>     0..|  	Bucket = bucket(Service, Collection),</font>
+<font color=red>     0..|  	case get_tree(Key, Service, Path) of</font>
+        |  		{?error, {?invalid_collection_name, _, _}} when Id =:= [] -&gt;
+<font color=red>     0..|  			NewItem1 = case NewItem of [] -&gt; []; _ -&gt; [NewItem] end,</font>
+<font color=red>     0..|  			case riak_put(Bucket, Key, NewItem1) of</font>
+        |  				ok -&gt;
+<font color=red>     0..|  					{ok, [NewItem]};</font>
+        |  				{error, Reason} -&gt;
+<font color=red>     0..|  					{?error, {Reason, Collection, Id}}</font>
+        |  			end;
+        |  		{?error, {Reason, ErrColl, ErrId}} -&gt;
+<font color=red>     0..|  			{?error, {Reason, ErrColl, ErrId}};</font>
+        |  		{ok, GotItems} -&gt;
+<font color=red>     0..|  			[{Coll, []} | PathTail] = lists:reverse(Path),</font>
+<font color=red>     0..|  			[{Items, []} | ItemTail] = GotItems,</font>
+<font color=red>     0..|  			case ssam_objects:value(&lt;&lt;"id"&gt;&gt;, NewItem) of</font>
+        |  				?undefined -&gt;
+<font color=red>     0..|  					{?error, {?invalid_resource_id, Coll, []}};</font>
+        |  				NewId -&gt;
+<font color=red>     0..|  					case ssam_objects:object(&lt;&lt;"id"&gt;&gt;, NewId, Items) of</font>
+        |  						[] -&gt;
+<font color=red>     0..|  							NewItems = ssam_objects:appended(NewItem, Items),</font>
+<font color=red>     0..|  							case apply_changes(PathTail, ItemTail, {Coll, NewItems}) of</font>
+        |  								{?error, {Reason, ErrColl, ErrId}} -&gt;
+<font color=red>     0..|  									{?error, {Reason, ErrColl, ErrId}};</font>
+        |  								{ok, Output} -&gt;
+<font color=red>     0..|  									update_db(Bucket, Key, Output)</font>
+        |  							end;
+        |  						_ -&gt;
+<font color=red>     0..|  							{?error, {?duplicate_resource_id, Coll, NewId}}</font>
+        |  					end
+        |  			end
+        |  	end;
+        |  post(Key, Service, Uri, NewItem) when is_list(Uri) -&gt;
+<font color=red>     0..|  	post(Key, Service, path(Uri), NewItem).</font>
+        |  
+        |  
+        |  put(Key, Service, [{Collection, _Id} | _] = Path, NewItem) -&gt;
+<font color=red>     0..|  	Bucket = bucket(Service, Collection),</font>
+<font color=red>     0..|  	case get_tree(Key, Service, Path) of</font>
+        |  		{?error, {Reason, ErrColl, ErrId}} -&gt;
+<font color=red>     0..|  			{?error, {Reason, ErrColl, ErrId}};</font>
+        |  		{ok, GotItems} -&gt;
+<font color=red>     0..|  			[{Coll, Id} | PathTail] = lists:reverse(Path),</font>
+<font color=red>     0..|  			[{Items, Item} | ItemTail] = GotItems,</font>
+<font color=red>     0..|  			NewItem1 = ssam_objects:value_replaced(&lt;&lt;"id"&gt;&gt;, Id, NewItem),</font>
+<font color=red>     0..|  			NewItems = ssam_objects:replaced(Item, NewItem1, Items),</font>
+<font color=red>     0..|  			case apply_changes(PathTail, ItemTail, {Coll, NewItems}) of</font>
+        |  				{?error, {Reason, ErrColl, ErrId}} -&gt;
+<font color=red>     0..|  					{?error, {Reason, ErrColl, ErrId}};</font>
+        |  				{ok, Output} -&gt;
+<font color=red>     0..|  					update_db(Bucket, Key, Output)</font>
+        |  			end
+        |  	end;
+        |  put(Key, Service, Uri, NewItem) when is_list(Uri) -&gt;
+<font color=red>     0..|  	put(Key, Service, path(Uri), NewItem).</font>
+        |  
+        |  
+        |  delete(Key, Service, [{Collection, _} | _] = Path) -&gt;
+<font color=red>     0..|  	Bucket = bucket(Service, Collection),</font>
+<font color=red>     0..|  	case get_tree(Key, Service, Path) of</font>
+        |  		{?error, {Reason, ErrColl, ErrId}} -&gt;
+<font color=red>     0..|  			{?error, {Reason, ErrColl, ErrId}};</font>
+        |  		{ok, GotItems} -&gt;
+<font color=red>     0..|  			[{Coll, _} | PathTail] = lists:reverse(Path),</font>
+<font color=red>     0..|  			[{Items, Item} | ItemTail] = GotItems,</font>
+<font color=red>     0..|  			Deleted = case Item =:= [] of</font>
+<font color=red>     0..|  				true -&gt; [];</font>
+<font color=red>     0..|  				false -&gt; ssam_objects:deleted(Item, Items)</font>
+        |  			end,
+<font color=red>     0..|  			case apply_changes(PathTail, ItemTail, {Coll, Deleted}) of</font>
+        |  				{?error, {Reason, ErrColl, ErrId}} -&gt;
+<font color=red>     0..|  					{?error, {Reason, ErrColl, ErrId}};</font>
+        |  				{ok, Output} -&gt;
+<font color=red>     0..|  					update_db(Bucket, Key, Output)</font>
+        |  			end
+        |  	end;
+        |  delete(Key, Service, Uri) when is_list(Uri) -&gt;
+<font color=red>     0..|  	delete(Key, Service, path(Uri)).</font>
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  apply_changes([], [], {_, Output}) -&gt;
+<font color=red>     0..|  	{ok, Output};</font>
+        |  apply_changes([{Coll, Id} | PathTail], [{OldItems, OldItem} | ItemTail], {Key, NewVal}) -&gt;
+<font color=red>     0..|  	NewItem = ssam_objects:value_replaced(Key, NewVal, OldItem),</font>
+<font color=red>     0..|  	case ssam_objects:replaced(OldItem, NewItem, OldItems) of</font>
+        |  		[] -&gt;
+<font color=red>     0..|  			{?error, {?invalid_data, Coll, Id}};</font>
+        |  		NewItems -&gt;
+<font color=red>     0..|  			apply_changes(PathTail, ItemTail, {Coll, NewItems})</font>
+        |  	end.
+        |  
+        |  
+        |  
+        |  update_db(Bucket, Key, Val) -&gt;
+<font color=red>     0..|  	case riak_put(Bucket, Key, Val) of</font>
+        |  		ok -&gt;
+<font color=red>     0..|  			{ok, Val};</font>
+        |  		{error, Reason} -&gt;
+<font color=red>     0..|  			{?error, {Reason, [], []}}</font>
+        |  	end.
+        |  
+        |  
+        |  %% @doc GET the collection.
+        |  get_collection(Key, Service, Collection) -&gt;
+<font color=red>     0..|  	Bucket = bucket(Service, Collection),</font>
+<font color=red>     0..|  	case ssam_riakc:get(Bucket, Key) of</font>
+        |  		{?error, ?not_found} -&gt;
+        |  			%ssam_monitor:notify(error, ?not_found),
+<font color=red>     0..|  			{?error, ?invalid_collection_name};</font>
+        |  		{?error, _Reason} -&gt;
+        |  			%% @todo ssam_monitor:notify(error, Reason),
+<font color=red>     0..|  			{?error, ?conflict};</font>
+        |  		{ok, Bin} when is_binary(Bin) -&gt;
+<font color=red>     0..|  			{ok, binary_to_term(Bin)};</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			{ok, Doc}</font>
+        |  	end.
+        |  
+        |  %% @doc GET the item.
+        |  get_collection_item(Key, Service, Collection, ItemId) -&gt;
+<font color=red>     0..|  	case get_collection(Key, Service, Collection) of</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			{?error, Reason};</font>
+        |  		{ok, Items} -&gt;
+<font color=red>     0..|  			case ssam_objects:object(&lt;&lt;"id"&gt;&gt;, ItemId, Items) of</font>
+        |  				[] -&gt;
+<font color=red>     0..|  					{?error, ?invalid_resource_id};</font>
+        |  				Item -&gt;
+<font color=red>     0..|  					{ok, {Items, Item}}</font>
+        |  			end
+        |  	end.
+        |  
+        |  %% @doc GET the item.
+        |  get_item(Key, Service, Collection, ItemId) -&gt;
+<font color=red>     0..|  	case get_collection_item(Key, Service, Collection, ItemId) of</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			{?error, Reason};</font>
+        |  		{ok, {_, Item}} -&gt;
+<font color=red>     0..|  			{ok, Item}</font>
+        |  	end.
+        |  
+        |  bucket(Service, Collection) -&gt;
+<font color=red>     0..|  	&lt;&lt;Service/binary, $_, Collection/binary&gt;&gt;.</font>
+        |  
+        |  
+        |  riak_put(Bucket, Key, Val) when is_binary(Val) -&gt;
+<font color=red>     0..|  	ssam_riakc:put(Bucket, Key, Val);</font>
+        |  riak_put(Bucket, Key, Val) -&gt;
+<font color=red>     0..|  	ssam_riakc:put(Bucket, Key, term_to_binary(Val)).</font>
+        |  
+        |  
+<font color=red>     0..|  path([]) -&gt; [];</font>
+<font color=red>     0..|  path(L) when not is_list(L) -&gt; [];</font>
+<font color=red>     0..|  path(L) -&gt; lists:reverse(path(L, [], [])).</font>
+        |  
+<font color=red>     0..|  path([H | []], [], Pairs) -&gt; [{H, []} | Pairs];</font>
+<font color=red>     0..|  path([H | T], [], Pairs) -&gt; path(T, H, Pairs);</font>
+<font color=red>     0..|  path([H | []], Val, Pairs) -&gt; [{Val, H} | Pairs];</font>
+<font color=red>     0..|  path([H | T], Val, Pairs) -&gt; path(T, [], [{Val, H} | Pairs]).</font>
+        |  
+        |  
+        |  
+        |  
+        |  
+        |  
+        |  
+        |  -ifdef(TEST_).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  account_sid() -&gt; &lt;&lt;"test_account_sid"&gt;&gt;.
+        |  service() -&gt; &lt;&lt;"test_service"&gt;&gt;.
+        |  collection() -&gt; &lt;&lt;"test_collection"&gt;&gt;.
+        |  
+        |  init_data() -&gt;
+        |  	Bucket = bucket(service(), collection()),
+        |  	ok = ssam_riakc:delete(Bucket, account_sid()).
+        |  
+        |  put_test_data(Data) -&gt;
+        |  	Bucket = bucket(service(), collection()),
+        |  	ok = riak_put(Bucket, account_sid(), Data).
+        |  
+        |  
+        |  get_collection_test_() -&gt;
+        |  	[
+        |  	 {"ok",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  CollData = [],
+        |  		  ok = put_test_data(CollData),
+        |  		  {ok, CollData} = get_collection(account_sid(), service(), collection())
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid_collection_name",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  {?error, ?invalid_collection_name}
+        |  		  = get_collection(account_sid(), service(), collection())
+        |  	  end
+        |  	 }
+        |  	].
+        |  
+        |  get_collection_item_test_() -&gt;
+        |  	[
+        |  	 {"ok",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Data1 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  Data2 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"2"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"2"&gt;&gt;}]},
+        |  		  CollData = [Data1, Data2],
+        |  		  ok = put_test_data(CollData),
+        |  		  {ok, {CollData, Data1}} =
+        |  			  get_collection_item(account_sid(), service(), collection(), &lt;&lt;"1"&gt;&gt;),
+        |  		  {ok, {CollData, Data2}} =
+        |  			  get_collection_item(account_sid(), service(), collection(), &lt;&lt;"2"&gt;&gt;)
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid_collection_name",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Id = &lt;&lt;"1"&gt;&gt;,
+        |  		  {?error, ?invalid_collection_name} =
+        |  			  get_collection_item(account_sid(), service(), collection(), Id)
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid_resource_id when collection empty",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  ok = put_test_data([]),
+        |  		  {?error, ?invalid_resource_id} =
+        |  			  get_collection_item(account_sid(), service(), collection(), &lt;&lt;"1"&gt;&gt;)
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid_resource_id when id not matched",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  CollData = [{[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"not matched"&gt;&gt;}]}], Id = &lt;&lt;"1"&gt;&gt;,
+        |  		  ok = put_test_data(CollData),
+        |  		  {?error, ?invalid_resource_id} =
+        |  			  get_collection_item(account_sid(), service(), collection(), Id)
+        |  	  end
+        |  	 }
+        |  	].
+        |  
+        |  get_test_() -&gt;
+        |  	[
+        |  	 {"ok, only collection",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Data1 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  CollData = [Data1, {[]}],
+        |  		  ok = put_test_data(CollData),
+        |  		  {ok, CollData} =
+        |  		  get(account_sid(), service(), [{collection(), []}]),
+        |  		  {ok, [{CollData, []}]} =
+        |  		  get_tree(account_sid(), service(), [{collection(), []}])
+        |  
+        |  	  end
+        |  	 },
+        |  	 {"ok, both collection and id",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Data1 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  Data2 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"2"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"2"&gt;&gt;}]},
+        |  		  CollData = [Data1, Data2],
+        |  		  ok = put_test_data(CollData),
+        |  		  {ok, Data1} =
+        |  		  get(account_sid(), service(), [{collection(), &lt;&lt;"1"&gt;&gt;}]),
+        |  		  {ok, Data2} =
+        |  		  get(account_sid(), service(), [{collection(), &lt;&lt;"2"&gt;&gt;}]),
+        |  
+        |  		  {ok, [{CollData, Data1}]} =
+        |  		  get_tree(account_sid(), service(), [{collection(), &lt;&lt;"1"&gt;&gt;}]),
+        |  		  {ok, [{CollData, Data2}]} =
+        |  		  get_tree(account_sid(), service(), [{collection(), &lt;&lt;"2"&gt;&gt;}])
+        |  	  end
+        |  	 },
+        |  	 {"ok, depth 2 expect id",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Data1 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  Data2 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"2"&gt;&gt;}, {&lt;&lt;"subcoll"&gt;&gt;, []}]},
+        |  		  Data3 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"3"&gt;&gt;}, {&lt;&lt;"subcoll"&gt;&gt;, &lt;&lt;"subdata"&gt;&gt;}]},
+        |  		  CollData = [Data1, Data2, Data3],
+        |  		  ok = put_test_data(CollData),
+        |  		  {ok, []} = get(account_sid(), service(),
+        |  									[{collection(), &lt;&lt;"2"&gt;&gt;}, {&lt;&lt;"subcoll"&gt;&gt;, []}]),
+        |  		  {ok, &lt;&lt;"subdata"&gt;&gt;} = get(account_sid(), service(),
+        |  								   [{collection(), &lt;&lt;"3"&gt;&gt;}, {&lt;&lt;"subcoll"&gt;&gt;, []}]),
+        |  
+        |  		  {ok, Result2} = get_tree(account_sid(), service(),
+        |  								   [{collection(), &lt;&lt;"2"&gt;&gt;}, {&lt;&lt;"subcoll"&gt;&gt;, []}]),
+        |  		  [{[], []}, {CollData, Data2}] = Result2,
+        |  		  {ok, Result3} = get_tree(account_sid(), service(),
+        |  								   [{collection(), &lt;&lt;"3"&gt;&gt;}, {&lt;&lt;"subcoll"&gt;&gt;, []}]),
+        |  		  [{&lt;&lt;"subdata"&gt;&gt;, []}, {CollData, Data3}] = Result3
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid_collection_name",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Coll = collection(), Id = &lt;&lt;"1"&gt;&gt;,
+        |  		  {?error, {?invalid_collection_name, Coll, Id}} =
+        |  		  get(account_sid(), service(), [{Coll, Id}]),
+        |  		  {?error, {?invalid_collection_name, Coll, Id}} =
+        |  		  get_tree(account_sid(), service(), [{Coll, Id}])
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid_resource_id when data empty",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  ok = put_test_data([]),
+        |  		  Coll = collection(), Id = &lt;&lt;"1"&gt;&gt;,
+        |  		  {?error, {?invalid_resource_id, Coll, Id}} =
+        |  		  get(account_sid(), service(), [{Coll, Id}]),
+        |  		  {?error, {?invalid_resource_id, Coll, Id}} =
+        |  		  get_tree(account_sid(), service(), [{Coll, Id}])
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid_resource_id when id not matched",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Coll = collection(), Id = &lt;&lt;"1"&gt;&gt;,
+        |  		  CollData = [{[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"not matched"&gt;&gt;}]}], 
+        |  		  ok = put_test_data(CollData),
+        |  		  {?error, {?invalid_resource_id, Coll, Id}} =
+        |  		  get(account_sid(), service(), [{Coll, Id}]),
+        |  		  {?error, {?invalid_resource_id, Coll, Id}} =
+        |  		  get_tree(account_sid(), service(), [{Coll, Id}])
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid_collection_name when collection not matched",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Data1 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  Data2 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"2"&gt;&gt;}, {&lt;&lt;"subcoll"&gt;&gt;, [{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"sub1"&gt;&gt;}]}]},
+        |  		  CollData = [Data1, Data2],
+        |  		  ok = put_test_data(CollData),
+        |  		  {?error, {?invalid_collection_name, &lt;&lt;"wrong"&gt;&gt;, []}} =
+        |  		  get(account_sid(), service(), [{collection(), &lt;&lt;"2"&gt;&gt;}, {&lt;&lt;"wrong"&gt;&gt;, []}]),
+        |  		  {?error, {?invalid_collection_name, &lt;&lt;"wrong"&gt;&gt;, []}} =
+        |  		  get_tree(account_sid(), service(), [{collection(), &lt;&lt;"2"&gt;&gt;}, {&lt;&lt;"wrong"&gt;&gt;, []}])
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid_resource_id when id not matched on multiple data",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Data1 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  Data2 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"2"&gt;&gt;}, {&lt;&lt;"subcoll"&gt;&gt;, [{[
+        |  															{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"sub1"&gt;&gt;},
+        |  															{&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}
+        |  														   ]}]
+        |  										 }]},
+        |  		  CollData = [Data1, Data2],
+        |  		  ok = put_test_data(CollData),
+        |  		  {?error, {?invalid_resource_id, &lt;&lt;"subcoll"&gt;&gt;, &lt;&lt;"invalid"&gt;&gt;}} =
+        |  		  get(account_sid(), service(), [{collection(), &lt;&lt;"2"&gt;&gt;},
+        |  										 {&lt;&lt;"subcoll"&gt;&gt;, &lt;&lt;"invalid"&gt;&gt;}])
+        |  	  end
+        |  	 }
+        |  	].
+        |  
+        |  
+        |  post_test_() -&gt;
+        |  	[
+        |  	 {"ok, post a new resource on empty collection",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Path = [{collection(), []}],
+        |  		  Data = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  {ok, [Data]} = post(account_sid(), service(), Path, Data),
+        |  		  {ok, [{[Data], []}]} = get_tree(account_sid(), service(), Path)
+        |  	  end
+        |  	 },
+        |  	 {"ok, post a new resource when collections already exist",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Path = [{collection(), []}],
+        |  		  Data1 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"subcoll"&gt;&gt;, []}]},
+        |  		  {ok, [Data1]} = post(account_sid(), service(), Path, Data1),
+        |  		  
+        |  		  Data2 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"2"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"2"&gt;&gt;}]},
+        |  		  {ok, [Data2, Data1]} = post(account_sid(), service(), Path, Data2),
+        |  
+        |  		  Data3 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"11"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"11"&gt;&gt;}]},
+        |  		  Data11 = {[{&lt;&lt;"subcoll"&gt;&gt;, [Data3]}, {&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  {ok, [Data11, Data2]}
+        |  			= post(account_sid(), service(),
+        |  				   [{collection(), &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"subcoll"&gt;&gt;, []}], Data3)
+        |  	  end
+        |  	 },
+        |  	 {"error, duplicate_resource_id",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Path = [{Coll = collection(), []}],
+        |  		  Data = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"duplicate"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  {ok, [Data]} = post(account_sid(), service(), Path, Data),
+        |  		  {?error, {?duplicate_resource_id, Coll, &lt;&lt;"duplicate"&gt;&gt;}} =
+        |  		  post(account_sid(), service(), Path, Data)
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid_collection_name",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Path = [{Coll = collection(), &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, []}],
+        |  		  {?error, {?invalid_collection_name, Coll, &lt;&lt;"1"&gt;&gt;}}
+        |  		  = post(account_sid(), service(), Path, []),
+        |  
+        |  		  InputPath = [{collection(), []}],
+        |  		  InputData1 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, []}]},
+        |  		  {ok, [InputData1]} = post(account_sid(), service(), InputPath, InputData1),
+        |  
+        |  		  InvalidPath = [{Coll, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"invalid"&gt;&gt;, []}],
+        |  		  {?error, {?invalid_collection_name, &lt;&lt;"invalid"&gt;&gt;, []}}
+        |  		  = post(account_sid(), service(), InvalidPath, &lt;&lt;"some data"&gt;&gt;)
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid_resource_id",
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Path = [{Coll = collection(), []}],
+        |  		  Data = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data1"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  {ok, [Data]} = post(account_sid(), service(), Path, Data),
+        |  
+        |  		  Path1 = [{Coll, &lt;&lt;"invalid"&gt;&gt;}, {&lt;&lt;"data2"&gt;&gt;, []}],
+        |  		  {?error, {?invalid_resource_id, Coll, &lt;&lt;"invalid"&gt;&gt;}}
+        |  		  = post(account_sid(), service(), Path1, &lt;&lt;"some data"&gt;&gt;)
+        |  
+        |  	  end
+        |  	 }
+        |  	].
+        |  
+        |  put_test_() -&gt;
+        |  	[
+        |  	 {"ok, post and put", 
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Path = [{collection(), []}],
+        |  		  Data = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  {ok, [Data]} = post(account_sid(), service(), Path, Data),
+        |  
+        |  		  Path1 = [{collection(), &lt;&lt;"1"&gt;&gt;}],
+        |  		  Data1 = {[{&lt;&lt;"data"&gt;&gt;, &lt;&lt;"changed"&gt;&gt;}, {&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  {ok, [{[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"changed"&gt;&gt;}]}]}
+        |  			= put(account_sid(), service(), Path1, Data1)
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid id", 
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Path = [{collection(), []}],
+        |  		  Data = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  {ok, [Data]} = post(account_sid(), service(), Path, Data),
+        |  
+        |  		  Path1 = [{Coll = collection(), &lt;&lt;"invalid"&gt;&gt;}],
+        |  		  Data1 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"changed"&gt;&gt;}]},
+        |  		  {?error, {?invalid_resource_id, Coll, &lt;&lt;"invalid"&gt;&gt;}} =
+        |  		  put(account_sid(), service(), Path1, Data1)
+        |  	  end
+        |  	 }
+        |  	].
+        |  
+        |  delete_test_() -&gt;
+        |  	[
+        |  	 {"ok, post and delete", 
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Path = [{collection(), []}],
+        |  		  Data = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  {ok, [Data]} = post(account_sid(), service(), Path, Data),
+        |  
+        |  		  Path1 = [{collection(), &lt;&lt;"1"&gt;&gt;}],
+        |  		  {ok, []} = delete(account_sid(), service(), Path1),
+        |  
+        |  		  Data1 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  Data2 = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"2"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"2"&gt;&gt;}]},
+        |  		  {ok, [Data1]} = post(account_sid(), service(), Path, Data1),
+        |  		  {ok, [Data2, Data1]} = post(account_sid(), service(), Path, Data2),
+        |  		  {ok, [Data2]} = delete(account_sid(), service(), Path1)
+        |  	  end
+        |  	 },
+        |  	 {"error, invalid id", 
+        |  	  fun() -&gt;
+        |  		  ok = init_data(),
+        |  		  Path = [{collection(), []}],
+        |  		  Data = {[{&lt;&lt;"id"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"data"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}]},
+        |  		  {ok, [Data]} = post(account_sid(), service(), Path, Data),
+        |  
+        |  		  Path1 = [{Coll = collection(), &lt;&lt;"invalid"&gt;&gt;}],
+        |  		  {?error, {?invalid_resource_id, Coll, &lt;&lt;"invalid"&gt;&gt;}} =
+        |  		  delete(account_sid(), service(), Path1)
+        |  	  end
+        |  	 }
+        |  	].
+        |  
+        |  path_test_() -&gt;
+        |  	[
+        |  	 {"test",
+        |  	  fun() -&gt;
+        |  		  [{&lt;&lt;"a"&gt;&gt;, []}] = path([&lt;&lt;"a"&gt;&gt;]),
+        |  		  [{&lt;&lt;"a"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}] = path([&lt;&lt;"a"&gt;&gt;, &lt;&lt;"1"&gt;&gt;]),
+        |  		  [{&lt;&lt;"a"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"b"&gt;&gt;, []}] = path([&lt;&lt;"a"&gt;&gt;, &lt;&lt;"1"&gt;&gt;, &lt;&lt;"b"&gt;&gt;]),
+        |  		  [{&lt;&lt;"a"&gt;&gt;, &lt;&lt;"1"&gt;&gt;}, {&lt;&lt;"b"&gt;&gt;, &lt;&lt;"2"&gt;&gt;}] =
+        |  		  path([&lt;&lt;"a"&gt;&gt;, &lt;&lt;"1"&gt;&gt;, &lt;&lt;"b"&gt;&gt;, &lt;&lt;"2"&gt;&gt;])
+        |  	  end
+        |  	 }
+        |  	].
+        |  
+        |  -endif.
+        |  
+        |  
+        |  
+        |  
+</pre>
+</body>
+</html>

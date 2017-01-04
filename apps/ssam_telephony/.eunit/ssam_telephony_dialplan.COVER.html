@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_telephony_dialplan.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_telephony/.eunit/ssam_telephony_dialplan.erl by COVER 2014-10-07 at 16:20:12
+
+****************************************************************************
+
+        |  -module(ssam_telephony_dialplan).
+        |  
+        |  -export([
+        |  		 start/0,
+        |  		 reload/0,
+        |  		 run/1,
+        |  		 launch/1,
+        |  		 send_msg/3, send_msg/4,
+        |  		 send_msg_locked/4
+        |  		]).
+        |  
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_telephony.hrl").
+        |  
+        |  
+        |  -record(state, {
+        |  		  channel = #telephony_channel{} :: record()
+        |  		 }).
+        |  
+        |  
+        |  start()-&gt;
+        |  	%% start our handler process running
+<font color=red>     0..|  	Pid = spawn(?MODULE, run, [initial_state()]),</font>
+        |  	%% register it with the same name as the module - myhandler
+<font color=red>     0..|  	register(?MODULE, Pid).</font>
+        |  
+        |  reload() -&gt;
+<font color=red>     0..|  	?MODULE ! reload.</font>
+        |  
+        |  run(State)-&gt;
+        |  	%% wait for messages from FreeSWITCH
+<font color=red>     0..|  	receive</font>
+        |  		{call, Data}-&gt;
+<font color=red>     0..|  			{event, [UUID | Rest]} = Data,</font>
+<font color=red>     0..|  			lager:debug("~p:run -&gt; call, UUID: ~p",[?MODULE, UUID]),</font>
+        |  			%lager:debug("~p:run -&gt; call, Data:~n~p",[?MODULE, Data]),
+<font color=red>     0..|  			Channel = State#state.channel#telephony_channel{uuid = UUID, data = Rest},</font>
+<font color=red>     0..|  			run(State#state{channel = Channel});</font>
+        |  		{call_event, Data} -&gt;
+<font color=red>     0..|  			{event, [_UUID | Rest]} = Data,</font>
+<font color=red>     0..|  			Event = proplists:get_value(&lt;&lt;"Event-Name"&gt;&gt;, Rest),</font>
+<font color=red>     0..|  			case handle_event(Event, Rest, State) of</font>
+<font color=red>     0..|  				{ok, State1} -&gt; run(State1);</font>
+<font color=red>     0..|  				{ignored, State1} -&gt; run(State1);</font>
+<font color=red>     0..|  				{hangup, State1} -&gt; {ok, State1};</font>
+<font color=red>     0..|  				{stop, State1} -&gt; {ok, State1}</font>
+        |  			end;
+        |  		{call_hangup, Data} -&gt;
+<font color=red>     0..|  			{event, [UUID | _Rest]} = Data,</font>
+<font color=red>     0..|  			lager:debug("~p:run -&gt; call, UUID: ~p",[?MODULE, UUID]),</font>
+<font color=red>     0..|  			{ok, State};</font>
+        |  		{get_pid, UUID, Ref, Pid} -&gt;
+        |  			%% request from FreeSWITCH for an outbound process to handle call at 'UUID'
+<font color=red>     0..|  			NewPid = spawn(?MODULE, run, [State]),</font>
+<font color=red>     0..|  			lager:debug("~p:run -&gt; get_pid, UUID: ~p, NewPid: ~p", [?MODULE, UUID, NewPid]),</font>
+<font color=red>     0..|  			Pid ! {Ref, NewPid},</font>
+<font color=red>     0..|  			run(State);</font>
+        |  		reload -&gt;
+<font color=red>     0..|  			run(State);</font>
+        |  		Unknown -&gt;
+<font color=red>     0..|  			lager:warning("~p:run -&gt; Unknown Event: ~p", [?MODULE, Unknown]),</font>
+<font color=red>     0..|  			run(State)</font>
+        |  	end.
+        |  
+        |  handle_event(&lt;&lt;"CHANNEL_PARK"&gt;&gt; = Event, Props,
+        |  			 #state{channel = Channel} = State) -&gt;
+<font color=red>     0..|  	#telephony_channel{uuid = UUID} = Channel,</font>
+<font color=red>     0..|  	lager:debug("~p:handle_event -&gt; ~p, ~p", [?MODULE, UUID, Event]),</font>
+        |  
+<font color=red>     0..|  	AccId = proplists:get_value(&lt;&lt;"variable_acc_id"&gt;&gt;, Props, &lt;&lt;&gt;&gt;),</font>
+<font color=red>     0..|  	AppId = proplists:get_value(&lt;&lt;"variable_app_id"&gt;&gt;, Props, &lt;&lt;&gt;&gt;),</font>
+        |  
+<font color=red>     0..|  	case ssam_riakc:get(&lt;&lt;?SERVICE/bits, "_calls"&gt;&gt;,</font>
+        |  						&lt;&lt;AccId/bits, ?DELIMITER, AppId/bits&gt;&gt;) of
+        |  		{ok, Bin} when is_binary(Bin) -&gt;
+<font color=red>     0..|  			Doc = binary_to_term(Bin),</font>
+<font color=red>     0..|  			io:format("~n~n######### Doc ###########~n~p~n~n", [Doc]),</font>
+<font color=red>     0..|  			App = proplists:get_value(app, Doc),</font>
+<font color=red>     0..|  			Vars = proplists:get_value(vars, Doc),</font>
+<font color=red>     0..|  			ssam_aml:start(App, #ssaml{vars = Vars, state = Channel}),</font>
+<font color=red>     0..|  			{ok, State};</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			lager:error("~p:handle_event -&gt; ~p", [?MODULE, Reason]),</font>
+<font color=red>     0..|  			{ok, State}</font>
+        |  	end;
+        |  handle_event(&lt;&lt;"CHANNEL_HANGUP"&gt;&gt; = Event, _Props,
+        |  			 #state{channel = Channel} = State) -&gt;
+<font color=red>     0..|  	#telephony_channel{uuid = UUID} = Channel,</font>
+<font color=red>     0..|  	lager:debug("~p:handle_event -&gt; ~p, ~p", [?MODULE, UUID, Event]),</font>
+<font color=red>     0..|  	{hangup, State};</font>
+        |  handle_event(Event, _Props, #state{channel = Channel} = State) -&gt;
+        |  	%lager:debug("~p:handle_event -&gt; ~p, ~p ignored", [?MODULE, UUID, Event]),
+<font color=red>     0..|  	#telephony_channel{uuid = UUID} = Channel,</font>
+        |  	%io:format("~n~p:handle_event -&gt; ~p, ~p ignored~n~p~n", [?MODULE, UUID, Event, Props]),
+<font color=red>     0..|  	lager:debug("~p:handle_event -&gt; ~p, ~p ignored", [?MODULE, UUID, Event]),</font>
+<font color=red>     0..|  	{ignored, State}.</font>
+        |  
+        |  launch(Ref) -&gt;
+        |  	%% rpc call to a function to return a new outbound call pid
+<font color=red>     0..|  	NewPid = spawn(?MODULE, run, [initial_state()]),</font>
+<font color=red>     0..|  	lager:debug("~p:launch -&gt; NewPid: ~p", [?MODULE, NewPid]),</font>
+<font color=red>     0..|  	{Ref, NewPid}.</font>
+        |  
+        |  initial_state() -&gt;
+<font color=red>     0..|  	NodeFs = ssam_conf:value(?SERVICE, [freeswitch, node_fs]),</font>
+<font color=red>     0..|  	#state{channel = #telephony_channel{node_fs = list_to_atom(NodeFs)}}.</font>
+        |  
+        |  send_msg(Node, UUID, App, ArgStr) -&gt;
+<font color=red>     0..|  	Headers = [{"call-command", "execute"},</font>
+        |  		{"execute-app-name", atom_to_list(App)}, {"execute-app-arg", ArgStr}],
+<font color=red>     0..|  	send_msg(Node, UUID, Headers).</font>
+        |  
+        |  send_msg_locked(Node, UUID, App, ArgStr) -&gt;
+<font color=red>     0..|  	Headers = [{"call-command", "execute"}, {"event-lock", "true"},</font>
+        |  		{"execute-app-name", atom_to_list(App)}, {"execute-app-arg", ArgStr}],
+<font color=red>     0..|  	send_msg(Node, UUID, Headers).</font>
+        |  
+<font color=red>     0..|  send_msg(Node, UUID, Headers) -&gt; {fs, Node} ! {sendmsg, UUID, Headers}.</font>
+        |  	
+</pre>
+</body>
+</html>

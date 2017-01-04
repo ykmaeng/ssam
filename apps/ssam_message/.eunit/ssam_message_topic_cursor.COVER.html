@@ -1,0 +1,205 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message_topic_cursor.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message_topic_cursor.erl by COVER 2014-10-08 at 11:23:44
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_message_topic_cursor).
+        |  
+        |  -behaviour(gen_server).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_message.hrl").
+        |  
+        |  -type key() :: binary(). 
+        |  
+        |  %% APIs
+        |  -export([
+        |  		 start_link/0,
+        |  		 stop/0, stop/1,
+        |  		 key/2,
+        |  		 cursor/2,
+        |  		 new/2, new/3,
+        |  		 update/1,
+        |  		 delete/1
+        |  		]).
+        |  
+        |  %% Callbacks
+        |  -export([init/1,
+        |  		 handle_call/3,
+        |  		 handle_cast/2,
+        |  		 handle_info/2,
+        |  		 terminate/2,
+        |           code_change/3]).
+        |  
+        |  -export_type([
+        |  			  key/0
+        |  			 ]).
+        |  
+        |  
+        |  -define(SERVER_TIMEOUT, 30*1000).
+        |  
+        |  -record(state, {
+        |  		  server_timeout :: pos_integer()
+        |  	 }).
+        |  
+        |  %% Public functions
+        |  
+        |  start_link() -&gt;
+<font color=red>     0..|  	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).</font>
+        |  
+        |  stop() -&gt;
+<font color=red>     0..|  	stop(normal).</font>
+        |  
+        |  stop(Reason) -&gt;
+<font color=red>     0..|  	gen_server:cast(?MODULE, {stop, Reason}).</font>
+        |  
+        |  key(TopicKey, CursorName) -&gt;
+     4..|  	&lt;&lt;"cursor", ?DELIMITER, TopicKey/binary, ?DELIMITER, CursorName/binary&gt;&gt;.
+        |  
+        |  cursor(TopicKey, CursorName) -&gt;
+     3..|  	CursorKey = key(TopicKey, CursorName),
+     3..|  	case ssam_data:value(bucket(), CursorKey) of
+<font color=red>     0..|  		?undef -&gt; new(TopicKey, CursorName);</font>
+     3..|  		Cursor -&gt; Cursor
+        |  	end.
+        |  
+        |  new(TopicKey, CursorName) -&gt;
+     1..|  	new(TopicKey, CursorName, 0).
+        |  
+        |  new(TopicKey, CursorName, LastSeq) -&gt;
+     1..|  	CursorKey = key(TopicKey, CursorName),
+     1..|  	Cursor = #topic_cursor{
+        |  				key = CursorKey,
+        |  				last_seq = LastSeq,
+        |  				last_use = ssam_util:now_sec()
+        |  			   },
+     1..|  	ok = ssam_data:put(bucket(), CursorKey, Cursor),
+     1..|  	Cursor.
+        |  
+        |  update(Cursor) -&gt;
+     1..|  	Cursor1 = Cursor#topic_cursor{last_use = ssam_util:now_sec()},
+     1..|  	ssam_data:put(bucket(), Cursor1#topic_cursor.key, Cursor1).
+        |  
+        |  delete(Cursor) -&gt;
+<font color=red>     0..|  	ssam_data:delete(bucket(), Cursor#topic_cursor.key).</font>
+        |  
+        |  
+        |  %% Callback functions
+        |  
+        |  init([]) -&gt;
+<font color=red>     0..|  	{ok, #state{server_timeout = ?SERVER_TIMEOUT}, ?SERVER_TIMEOUT}.</font>
+        |  
+        |  handle_call(Unknown, From, State) -&gt;
+<font color=red>     0..|  	lager:debug("Unknown: ~p, From ~p", [Unknown, From]),</font>
+<font color=red>     0..|      {reply, ok, State, ?TOPIC_SERVER_TIMEOUT}.</font>
+        |  
+        |  handle_cast({stop, _TopicKey, Reason}, State) -&gt;
+<font color=red>     0..|  	{stop, Reason, State};</font>
+        |  
+        |  handle_cast(Unknown, State) -&gt;
+<font color=red>     0..|  	lager:error("Unknown: ~p", [Unknown]),	</font>
+<font color=red>     0..|      {noreply, State, ?TOPIC_SERVER_TIMEOUT}.</font>
+        |  
+        |  handle_info(timeout, State) -&gt;
+<font color=red>     0..|  	{noreply, State, ?TOPIC_SERVER_TIMEOUT};</font>
+        |  
+        |  handle_info(_Msg, State) -&gt;
+<font color=red>     0..|  	{noreply, State, ?TOPIC_SERVER_TIMEOUT}.</font>
+        |  
+        |  terminate(Reason, _State) -&gt;
+<font color=red>     0..|  	lager:debug("~p", [Reason]),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  code_change(_OldVsn, State, _Extra) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  %% Private functions
+        |  
+     5..|  bucket() -&gt; ?BUCKET_TOPIC_CURSORS.
+        |  
+        |  
+        |  
+        |  
+        |  %% Tests
+        |  %%
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  -record(test, {a, b}).
+        |  
+<font color=red>     0..|  request_id() -&gt; &lt;&lt;"request_id"&gt;&gt;.</font>
+     5..|  topic_key() -&gt; &lt;&lt;"topic_key"&gt;&gt;.
+     4..|  cursor_name() -&gt; &lt;&lt;"cursor_name"&gt;&gt;.
+     3..|  cursor() -&gt; cursor(topic_key(), cursor_name()).
+        |  
+        |  start_server() -&gt;
+<font color=red>     0..|  	Topic = #topic{key = topic_key()},</font>
+<font color=red>     0..|  	{ok, Pid} = ?MODULE:start_link(Topic),</font>
+<font color=red>     0..|  	{Pid, Topic}.</font>
+        |  	
+        |  
+        |  
+        |  setup_test_() -&gt;
+     1..|  	{setup,
+        |  		fun() -&gt;
+     1..|  			ok = application:set_env(ssam, riakc,
+        |  									 [{host, "127.0.0.1" }, {port, 8087 }]),
+     1..|  			ssam_riakc:start_link(),
+     1..|  			ssam_cache:start_link()
+        |  		end,
+     1..|  		fun(_X) -&gt; ok end,	%% cleanup
+     1..|  		fun(X) -&gt; [		%% tests
+        |  			cursor_tests()
+        |  		] end
+        |  	}.
+        |  
+        |  cursor_tests() -&gt;
+     1..|  	[
+        |  		{"cursor_load",
+        |  		 fun() -&gt;
+     1..|  				 Cursor = new(topic_key(), cursor_name()),
+     1..|  				 Cursor = cursor(),
+     1..|  				 io:format(user, "~nCursor: ~p~n", [Cursor]),
+     1..|  				 Cursor#topic_cursor{key = topic_key()}
+        |  		 end
+        |  		},
+        |  		{"cursor_update",
+        |  		 fun() -&gt;
+     1..|  				 Cursor = cursor(),
+     1..|  				 Cursor1 = Cursor#topic_cursor{last_seq = 10},
+     1..|  				 ok = update(Cursor1),
+     1..|  				 Curosr1 = cursor()
+        |  		 end
+        |  		}
+        |  	].
+        |  
+        |  
+        |  -endif.
+        |  
+        |  
+        |  
+</pre>
+</body>
+</html>

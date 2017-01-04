@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message_lms_resource.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message_lms_resource.erl by COVER 2014-10-08 at 11:23:44
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_message_lms_resource).
+        |  
+        |  %-compile(export_all).
+        |  -export([post/2]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_message.hrl").
+        |  
+        |  
+        |  
+        |  post(#request{
+        |  		uri = [&lt;&lt;"lms"&gt;&gt;]
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:post -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	state_post_lms(check_callback_url, Request).</font>
+        |  
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  state_post_lms(check_callback_url, #request{body = Body} = Request) -&gt;
+<font color=red>     0..|  	case proplists:get_value(&lt;&lt;"callback_url"&gt;&gt;, Body) of</font>
+        |  		?undefined -&gt;
+<font color=red>     0..|  			state_post_lms(check_msg_id, Request);</font>
+        |  		CallbackUrl -&gt;
+<font color=red>     0..|  			Code = ssam_message:new_verification_code(),</font>
+<font color=red>     0..|  			case ssam_message:confirm_url(</font>
+        |  				   CallbackUrl, [{&lt;&lt;"verification_code"&gt;&gt;, Code}], Code) of
+        |  				ok -&gt;
+<font color=red>     0..|  					state_post_lms(check_msg_id, Request);</font>
+        |  				{?error, Reason} -&gt;
+<font color=red>     0..|  					{?error, ssam_rest:response(?STATUS_BAD_REQUEST, Reason, Request)}</font>
+        |  			end
+        |  	end;
+        |  state_post_lms(check_msg_id, Request) -&gt;
+<font color=red>     0..|  	#request{id = ReqId, account_sid = Sid, body = Body} = Request,</font>
+<font color=red>     0..|  	MsgId = case proplists:get_value(&lt;&lt;"id"&gt;&gt;, Body) of</font>
+<font color=red>     0..|  				?undefined -&gt; ReqId;</font>
+<font color=red>     0..|  				Id -&gt; Id</font>
+        |  			end,
+<font color=red>     0..|  	case ssam_riakc:get(?BUCKET_MESSAGE_LMS, log_key(Sid, MsgId)) of</font>
+        |  		{?error, ?not_found} -&gt;
+<font color=red>     0..|  			state_post_lms(check_receivers, {MsgId, Request});</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(</font>
+        |  					   ?STATUS_BAD_REQUEST, ?id_duplicated, Request)}
+        |  	end;
+        |  state_post_lms(check_receivers, {MsgId, Request}) -&gt;
+<font color=red>     0..|  	To = proplists:get_value(&lt;&lt;"to"&gt;&gt;, Request#request.body),</font>
+<font color=red>     0..|  	To1 = re:replace(To, &lt;&lt;"[$\s.-]"&gt;&gt;, &lt;&lt;&gt;&gt;, [global, unicode, {return, binary}]),</font>
+<font color=red>     0..|  	ToList = re:split(To1, &lt;&lt;"[,;]"&gt;&gt;, [unicode, {return, binary}]),</font>
+<font color=red>     0..|  	ToList1 = lists:usort(ToList), %% No more duplicates</font>
+<font color=red>     0..|  	case length(ToList1) &gt; 0 of</font>
+        |  		true -&gt;
+<font color=red>     0..|  			state_post_lms(write_ref, {MsgId, ToList1, Request});</font>
+        |  		false -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_BAD_REQUEST, ?no_receivers, Request)}</font>
+        |  	end;
+        |  state_post_lms(write_ref, {MsgId, ToList, Request}) -&gt;
+<font color=red>     0..|  	#request{id = RequestId, account_sid = Sid} = Request,</font>
+<font color=red>     0..|  	RefId = ssam_util:unique_base64(),</font>
+<font color=red>     0..|  	Doc = {[</font>
+        |  			{&lt;&lt;"account_sid"&gt;&gt;, Sid},
+        |  			{&lt;&lt;"request_id"&gt;&gt;, RequestId},
+        |  			{&lt;&lt;"type"&gt;&gt;, &lt;&lt;"lms"&gt;&gt;},
+        |  			{&lt;&lt;"msg_id"&gt;&gt;, MsgId},
+        |  			{&lt;&lt;"created"&gt;&gt;, ssam_util:now_sec()}
+        |  		   ]},
+<font color=red>     0..|  	case ssam_riakc:put(?BUCKET_MESSAGE_LMS, ref_key(RefId), Doc) of</font>
+        |  		ok -&gt;
+<font color=red>     0..|  			state_post_lms(write_log, {RefId, MsgId, ToList, Request});</font>
+        |  		{?error, Reason} when is_atom(Reason) -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_CONFLICT, Reason, Request)};</font>
+        |  		{?error, _} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_CONFLICT, write_ref, Request)}</font>
+        |  	end;
+        |  state_post_lms(write_log, {RefId, MsgId, ToList, Request}) -&gt;
+<font color=red>     0..|  	#request{id = RequestId, account_sid = Sid, body = Body} = Request,</font>
+<font color=red>     0..|  	Subject = proplists:get_value(&lt;&lt;"subject"&gt;&gt;, Body, &lt;&lt;&gt;&gt;),</font>
+<font color=red>     0..|  	Body1 = ssam_objects:list_deleted([&lt;&lt;"id"&gt;&gt;, &lt;&lt;"to"&gt;&gt;, &lt;&lt;"subject"&gt;&gt;], Body),</font>
+<font color=red>     0..|  	From = proplists:get_value(&lt;&lt;"from"&gt;&gt;, Body1),</font>
+<font color=red>     0..|  	Msg = proplists:get_value(&lt;&lt;"message"&gt;&gt;, Body1),</font>
+<font color=red>     0..|  	Doc = {[</font>
+        |  			{&lt;&lt;"_ref_id"&gt;&gt;, RefId},
+        |  			{&lt;&lt;"_request_id"&gt;&gt;, RequestId},
+        |  			{&lt;&lt;"_type"&gt;&gt;, &lt;&lt;"lms"&gt;&gt;},
+        |  			{&lt;&lt;"_created"&gt;&gt;, ssam_util:now_sec()},
+        |  			{&lt;&lt;"id"&gt;&gt;, MsgId},
+        |  			{&lt;&lt;"subject"&gt;&gt;, Subject},
+<font color=red>     0..|  			{&lt;&lt;"to"&gt;&gt;, [{[{To, &lt;&lt;&gt;&gt;} || To &lt;- ToList]}]} |</font>
+        |  			Body1
+        |  		]},
+<font color=red>     0..|  	case ssam_riakc:put(?BUCKET_MESSAGE_LMS, log_key(Sid, MsgId), Doc) of</font>
+        |  		ok -&gt;
+<font color=red>     0..|  			state_post_lms(dispatch, {RefId, Subject, Msg, From, ToList, Doc, Request});</font>
+        |  		{?error, Reason} when is_atom(Reason) -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_CONFLICT, Reason, Request)};</font>
+        |  		{?error, _} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(</font>
+        |  					   ?STATUS_INTERNAL_SERVER_ERROR, write_log, Request)}
+        |  	end;
+        |  state_post_lms(dispatch, {RefId, Subject, Msg, From, ToList, Doc, Request}) -&gt;
+<font color=red>     0..|  	case ssam_conf:value(?SERVICE, [providers, default, handler]) of</font>
+        |  		?undefined -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(</font>
+        |  					   ?STATUS_SERVICE_UNAVAILABLE, ?provider_handler_not_found, Request)};
+        |  		Handler when is_atom(Handler) -&gt;
+<font color=red>     0..|  			case Handler:send_lms(RefId, Subject, Msg, From, ToList) of</font>
+        |  				ok -&gt;
+<font color=red>     0..|  					{ok, ssam_rest:response(?STATUS_CREATED, Doc, Request)};</font>
+        |  				{?error, Reason} when is_atom(Reason) -&gt;
+<font color=red>     0..|  					{?error, ssam_rest:response(</font>
+        |  							   ?STATUS_INTERNAL_SERVER_ERROR, Reason, Request)};
+        |  				{?error, _} -&gt;
+<font color=red>     0..|  					{?error, ssam_rest:response(</font>
+        |  							   ?STATUS_INTERNAL_SERVER_ERROR, dispatch, Request)}
+        |  			end
+        |  	end.
+        |  
+        |  ref_key(RefId) -&gt;
+<font color=red>     0..|  	&lt;&lt;"ref", ?DELIMITER, RefId/binary&gt;&gt;.</font>
+        |  
+        |  log_key(Sid, MsgId) -&gt;
+<font color=red>     0..|  	&lt;&lt;Sid/binary, ?DELIMITER, MsgId/binary&gt;&gt;.</font>
+        |  
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  -endif.
+        |  
+</pre>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message_topic_handler.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message_topic_handler.erl by COVER 2014-10-08 at 11:23:43
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_message_topic_handler).
+        |  
+        |  -behaviour(cowboy_loop_handler).
+        |  -behaviour(cowboy_websocket_handler).
+        |  
+        |  %% Callbacks for Loop Handler
+        |  -export([init/3,
+        |  		 info/3,
+        |  		 terminate/3]).
+        |  
+        |  %% Callbacks for REST
+        |  -export([rest_init/2,
+        |  		 is_authorized/2,
+        |  		 content_types_provided/2,
+        |  		 content_types_accepted/2,
+        |  		 allowed_methods/2,
+        |  		 malformed_request/2,
+        |  		 handle/2,
+        |  		 options/2,
+        |  		 get_resource/2,
+        |  		 post_resource/2,
+        |  		 put_resource/2,
+        |  		 delete_resource/2
+        |  		]).
+        |  
+        |  %% Callbacks for Websocket
+        |  -export([websocket_init/3,
+        |  		 websocket_handle/3,
+        |  		 websocket_info/3,
+        |  		 websocket_terminate/3
+        |  		]).
+        |  
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_message.hrl").
+        |  
+        |  
+        |  init(_Transport, Req, []) -&gt;
+        |  	%lager:debug("~p:init -&gt; Req: ~p", [?MODULE, Req]),
+<font color=red>     0..|  	{Method, _} = cowboy_req:method(Req),</font>
+<font color=red>     0..|  	{Path, _} = cowboy_req:path(Req),</font>
+<font color=red>     0..|  	{Upgrade, _} = cowboy_req:header(&lt;&lt;"upgrade"&gt;&gt;, Req),</font>
+<font color=red>     0..|  	[&lt;&lt;&gt;&gt;, _Service, _Version | Uri] = binary:split(Path, &lt;&lt;"/"&gt;&gt;, [global]),</font>
+<font color=red>     0..|  	case Uri of</font>
+        |  		[&lt;&lt;"topics"&gt;&gt;, _, &lt;&lt;"updates"&gt;&gt;] when Upgrade =:= &lt;&lt;"websocket"&gt;&gt; -&gt;
+<font color=red>     0..|  			{upgrade, protocol, cowboy_websocket};</font>
+        |  		[&lt;&lt;"topics"&gt;&gt;, _, &lt;&lt;"updates"&gt;&gt;] when Method =:= &lt;&lt;"GET"&gt;&gt; -&gt;
+<font color=red>     0..|  			{ok, Req1, State} = ssam_rest:parse_request(Req),</font>
+<font color=red>     0..|  			handle_get(Req1, State);</font>
+        |  		_ -&gt;
+<font color=red>     0..|  			{upgrade, protocol, cowboy_rest}</font>
+        |  	end.
+        |  
+        |  
+        |  %% Loop handlers
+        |  
+        |  handle(Req, State) -&gt;
+<font color=red>     0..|  	{ok, Req, State}.</font>
+        |  
+        |  info({push, TopicKey, Msgs, Ref, From}, Req, State) -&gt;
+<font color=red>     0..|  	lager:debug("updated, TopicKey: ~p, From: ~p", [TopicKey, From]),</font>
+<font color=red>     0..|  	case ssam_objects:value(topic_key, State#request.props) of</font>
+        |  		TopicKey -&gt;
+<font color=red>     0..|  			From ! {ok, Ref},</font>
+        |  			%Msgs = binary_to_term(MsgsBin),
+<font color=red>     0..|  			Body = [{[{&lt;&lt;"_id"&gt;&gt;, X#topic_message.msg_id}] ++ X#topic_message.msg_body}</font>
+<font color=red>     0..|  					|| X &lt;- Msgs],</font>
+<font color=red>     0..|  			Response = ssam_rest:response(Body, State),</font>
+<font color=red>     0..|  			info({reply, Response}, Req, State);</font>
+        |  		_ -&gt;
+        |  			%From ! {{?error, ?invalid_client}, Ref, self()},
+<font color=red>     0..|  			{loop, Req, State, hibernate}</font>
+        |  	end;
+        |  info({reply, Response}, Req, State) -&gt;
+<font color=red>     0..|  	case State#request.transport of</font>
+        |  		eventsource -&gt;
+<font color=red>     0..|  			ok = ssam_rest:chunk(Response, Req),</font>
+        |  			%{loop, Req, State, ?LOOP_TIMEOUT};
+<font color=red>     0..|  			{loop, Req, State};</font>
+        |  		_ -&gt;
+<font color=red>     0..|  			{ok, _Req1, _State1} = ssam_rest:reply(Response, Req, State)</font>
+        |  	end;
+        |  info({stop, TopicKey}, Req, State) -&gt;
+<font color=red>     0..|  	lager:debug("stop, TopicKey: ~p", [TopicKey]),</font>
+<font color=red>     0..|  	case proplists:get_value(topic_key, State#request.props) of</font>
+<font color=red>     0..|  		TopicKey -&gt; {ok, Req, State};</font>
+<font color=red>     0..|  		_ -&gt; {loop, Req, State, hibernate}</font>
+        |  	end;
+        |  info(Unknown, Req, State) -&gt;
+<font color=red>     0..|  	lager:warning("Unknown: ~p", [?MODULE, Unknown]),</font>
+<font color=red>     0..|  	{loop, Req, State, hibernate}.</font>
+        |  
+        |  terminate(Reason, _Req, #request{props = Props, from = ClientPid}) -&gt;
+<font color=red>     0..|  	lager:debug("Reason: ~p", [Reason]),</font>
+<font color=red>     0..|  	case proplists:get_value(topic_key, Props) of</font>
+<font color=red>     0..|  		?undefined -&gt; lager:warning("topic_key undefined");</font>
+<font color=red>     0..|  		TopicKey -&gt; ssam_message_topic_server:delete_client(TopicKey, ClientPid)</font>
+        |  	end.
+        |  
+        |  handle_get(is_authorized, {Req, State}) -&gt;
+<font color=red>     0..|  	case is_authorized(Req, State) of</font>
+        |  		{true, Req1, State1} -&gt;
+<font color=red>     0..|  			handle_get(check_malformed_request, {Req1, State1});</font>
+        |  		_ -&gt;
+<font color=red>     0..|  			handle_get(?error, {?STATUS_UNAUTHORIZED, [], Req, State})</font>
+        |  	end;
+        |  handle_get(check_malformed_request, {Req, State}) -&gt;
+<font color=red>     0..|  	case malformed_request(Req, State) of</font>
+        |  		{false, _, _} -&gt;
+<font color=red>     0..|  			handle_get(check_transport, {Req, State});</font>
+        |  		{true, _, _} -&gt;
+<font color=red>     0..|  			handle_get(?error, {?STATUS_BAD_REQUEST, [], Req, State})</font>
+        |  	end;
+        |  handle_get(check_transport, {Req, State}) -&gt;
+<font color=red>     0..|  	case cowboy_req:header(&lt;&lt;"accept"&gt;&gt;, Req) of</font>
+        |  		{&lt;&lt;"text/event-stream"&gt;&gt;, Req1} -&gt;
+<font color=red>     0..|  			State1 = State#request{transport = eventsource},</font>
+<font color=red>     0..|  			{ok, Req2, State2} = ssam_rest:chunked_reply(Req1, State1),</font>
+<font color=red>     0..|  			handle_get(route, {Req2, State2});</font>
+        |  		_ -&gt;
+<font color=red>     0..|  			handle_get(route, {Req, State})</font>
+        |  	end;
+        |  handle_get(route, {Req, State}) -&gt;
+<font color=red>     0..|  	case ssam_vnode:local_route(ssam_message_topic_resource, get, State#request{}) of</font>
+        |  		{ok, State1} -&gt;
+<font color=red>     0..|  			case</font>
+        |  				case proplists:get_value(&lt;&lt;"timeout"&gt;&gt;, State#request.params) of
+<font color=red>     0..|  					?undefined -&gt; ?TOPIC_HTTPLOOP_TIMEOUT;</font>
+<font color=red>     0..|  					Val -&gt; binary_to_integer(Val) * 1000</font>
+        |  				end
+        |  			of
+        |  				Timeout when Timeout &lt; (30*1000) -&gt;
+<font color=red>     0..|  					{loop, Req, State1, Timeout};</font>
+        |  				Timeout -&gt;
+<font color=red>     0..|  					{loop, Req, State1, Timeout, hibernate}</font>
+        |  			end;
+        |  		{?error, Response} -&gt;
+<font color=red>     0..|  			lager:error("Response: ~p", [Response]),</font>
+<font color=red>     0..|  			{ok, _Req1, _State1} = ssam_rest:reply(Response, Req, State)</font>
+        |  	end;
+        |  handle_get(?error, {Code, Msg, Req, State}) -&gt;
+<font color=red>     0..|  	Response = ssam_rest:response(Code, Msg, State),</font>
+<font color=red>     0..|  	{ok, _Req1, _State1} = ssam_rest:reply(Response, Req, State);</font>
+        |  handle_get(Req, State) -&gt;
+<font color=red>     0..|  	handle_get(is_authorized, {Req, State}).</font>
+        |  
+        |  
+        |  %% REST handlers
+        |  
+        |  rest_init(Req, _Options) -&gt;
+<font color=red>     0..|  	{ok, _Req, _State} = ssam_rest:parse_request(Req).</font>
+        |  
+        |  is_authorized(Req, State) -&gt;
+<font color=red>     0..|  	ssam_auth:is_authorized(Req, State).</font>
+        |  
+        |  allowed_methods(Req, State) -&gt;
+<font color=red>     0..|  	{[&lt;&lt;"GET"&gt;&gt;, &lt;&lt;"POST"&gt;&gt;, &lt;&lt;"PUT"&gt;&gt;, &lt;&lt;"DELETE"&gt;&gt;, &lt;&lt;"OPTIONS"&gt;&gt;], Req, State}.</font>
+        |  	
+        |  content_types_provided(Req, State) -&gt;
+<font color=red>     0..|  	{[</font>
+        |  		{{&lt;&lt;"application"&gt;&gt;, &lt;&lt;"json"&gt;&gt;, []}, get_resource}
+        |  	], Req, State}.
+        |  
+        |  content_types_accepted(Req, #request{method = Method} = State) -&gt;
+<font color=red>     0..|  	Handler = case Method of</font>
+<font color=red>     0..|  		&lt;&lt;"PUT"&gt;&gt; -&gt; put_resource;</font>
+<font color=red>     0..|  		&lt;&lt;"POST"&gt;&gt; -&gt; post_resource;</font>
+<font color=red>     0..|  		Else -&gt; throw({error, {unkown_method, Else}})</font>
+        |  	end,
+<font color=red>     0..|  	{[</font>
+        |  		{{&lt;&lt;"application"&gt;&gt;, &lt;&lt;"x-www-form-urlencoded"&gt;&gt;, []}, Handler}
+        |  	], Req, State}.
+        |  
+        |  malformed_request(Req, State) -&gt;
+<font color=red>     0..|  	{malformed_request(State), Req, State}.</font>
+        |  
+        |  malformed_request(#request{method = &lt;&lt;"POST"&gt;&gt;, uri = Uri, body = Params}) -&gt;
+<font color=red>     0..|  	case Uri of</font>
+        |  		[&lt;&lt;"topics"&gt;&gt;] -&gt; 
+<font color=red>     0..|  			not ssam_objects:is_all_defined([&lt;&lt;"id"&gt;&gt;], Params);</font>
+<font color=red>     0..|  		[&lt;&lt;"topics"&gt;&gt;, _, &lt;&lt;"updates"&gt;&gt;] -&gt; false;</font>
+        |  		[&lt;&lt;"topics"&gt;&gt;, _, &lt;&lt;"subscribers"&gt;&gt;] -&gt;
+<font color=red>     0..|  			not (</font>
+        |  			  ssam_objects:is_all_defined([&lt;&lt;"id"&gt;&gt;, &lt;&lt;"type"&gt;&gt;], Params) and
+        |  			  is_valid_params(Params)
+        |  			);
+<font color=red>     0..|  		_ -&gt; true</font>
+        |  	end;
+        |  malformed_request(#request{method = &lt;&lt;"PUT"&gt;&gt;, uri = Uri, body = Params}) -&gt;
+<font color=red>     0..|  	case Uri of</font>
+<font color=red>     0..|  		[&lt;&lt;"topics"&gt;&gt;, _] -&gt; false;</font>
+        |  		[&lt;&lt;"topics"&gt;&gt;, _, &lt;&lt;"subscribers"&gt;&gt;, _] -&gt;
+<font color=red>     0..|  			  not ssam_objects:is_all_defined([&lt;&lt;"callback_url"&gt;&gt;], Params);</font>
+<font color=red>     0..|  		_ -&gt; true</font>
+        |  	end;
+        |  malformed_request(_) -&gt;
+<font color=red>     0..|  	false.</font>
+        |  
+        |  options(Req, State) -&gt;
+<font color=red>     0..|      Req1 = cowboy_req:set_resp_header(&lt;&lt;"access-control-allow-methods"&gt;&gt;,</font>
+        |  									  &lt;&lt;"GET, POST, OPTIONS"&gt;&gt;, Req),
+<font color=red>     0..|      Req2 = cowboy_req:set_resp_header(&lt;&lt;"access-control-allow-origin"&gt;&gt;,</font>
+        |  									  State#request.origin, Req1),
+        |      %Req3 = cowboy_req:set_resp_header(&lt;&lt;"access-control-allow-credentials"&gt;&gt;, &lt;&lt;"true"&gt;&gt;, Req2),
+<font color=red>     0..|      {ok, Req2, State}.</font>
+        |  
+        |  get_resource(Req, State) -&gt;
+<font color=red>     0..|  	{_, Response} = ssam_vnode:route(ssam_message_topic_resource,</font>
+        |  									   get, State#request{}),
+<font color=red>     0..|  	lager:debug("Response: ~p", [Response]),</font>
+<font color=red>     0..|  	{ok, Req1, State1} = ssam_rest:reply(Response, Req, State),</font>
+<font color=red>     0..|  	{halt, Req1, State1}.</font>
+        |  
+        |  post_resource(Req, State) -&gt;
+<font color=red>     0..|  	{_, Response} = ssam_vnode:route(ssam_message_topic_resource,</font>
+        |  											 post, State#request{}),
+        |  
+<font color=red>     0..|  	lager:debug("Response: ~p", [Response]),</font>
+<font color=red>     0..|  	{ok, Req1, State1} = ssam_rest:reply(Response, Req, State),</font>
+<font color=red>     0..|  	{halt, Req1, State1}.</font>
+        |  
+        |  put_resource(Req, State) -&gt;
+<font color=red>     0..|  	{_, Response} = ssam_vnode:route(ssam_message_topic_resource,</font>
+        |  									   put, State#request{}),
+<font color=red>     0..|  	lager:debug("Response: ~p", [Response]),</font>
+<font color=red>     0..|  	{ok, Req1, State1} = ssam_rest:reply(Response, Req, State),</font>
+<font color=red>     0..|  	{halt, Req1, State1}.</font>
+        |  
+        |  delete_resource(Req, State) -&gt;
+<font color=red>     0..|  	{_, Response} = ssam_vnode:route(ssam_message_topic_resource,</font>
+        |  									   delete, State#request{}),
+<font color=red>     0..|  	lager:debug("Response: ~p", [Response]),</font>
+<font color=red>     0..|  	{ok, Req1, State1} = ssam_rest:reply(Response, Req, State),</font>
+<font color=red>     0..|  	{halt, Req1, State1}.</font>
+        |  
+        |  
+        |  %% Websocket handlers
+        |  
+        |  websocket_init(_TransportName, Req, _Opts) -&gt;
+<font color=red>     0..|  	{ok, Req1, State} = ssam_rest:parse_request(Req),</font>
+        |  	%erlang:start_timer(10*1000, self(), &lt;&lt;"Hello!"&gt;&gt;),
+<font color=red>     0..|  	case handle_get(Req1, State) of</font>
+        |  		{ok, State1} -&gt;
+<font color=red>     0..|  			Timeout =</font>
+        |  				case proplists:get_value(&lt;&lt;"timeout"&gt;&gt;, State#request.params) of
+<font color=red>     0..|  					?undefined -&gt; ?TOPIC_WEBSOCKET_TIMEOUT;</font>
+<font color=red>     0..|  					Val -&gt; binary_to_integer(Val) * 1000</font>
+        |  				end,
+<font color=red>     0..|  			{ok, Req1, State1, Timeout};</font>
+        |  		{?error, Response} -&gt;
+<font color=red>     0..|  			lager:error("Response: ~p", [Response]),</font>
+<font color=red>     0..|  			{ok, _Req1, _State1} = ssam_rest:reply(Response, Req, State)</font>
+        |  	end.
+        |  
+        |  websocket_handle({text, Msg}, Req, State) -&gt;
+<font color=red>     0..|  	{reply, {text, &lt;&lt; "That's what she said! ", Msg/binary &gt;&gt;}, Req, State};</font>
+        |  websocket_handle(_Data, Req, State) -&gt;
+<font color=red>     0..|  	{ok, Req, State}.</font>
+        |  
+        |  websocket_info({timeout, _Ref, _Msg}, Req, State) -&gt;
+        |  	%erlang:start_timer(10*1000, self(), &lt;&lt;"How' you doin'?"&gt;&gt;),
+        |  	%{reply, {text, Msg}, Req, State};
+<font color=red>     0..|  	{ok, Req, State, hibernate};</font>
+        |  websocket_info(_Info, Req, State) -&gt;
+<font color=red>     0..|  	{ok, Req, State}.</font>
+        |  
+        |  websocket_terminate(_Reason, _Req, _State) -&gt;
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  is_valid_params(Params) -&gt;
+<font color=red>     0..|  	case proplists:get_value(&lt;&lt;"type"&gt;&gt;, Params, []) of</font>
+        |  		&lt;&lt;"webhook"&gt;&gt; -&gt;
+<font color=red>     0..|  			ssam_objects:is_all_defined([&lt;&lt;"callback_url"&gt;&gt;], Params);</font>
+        |  		_ -&gt;
+<font color=red>     0..|  			false</font>
+        |  	end.
+        |  
+</pre>
+</body>
+</html>

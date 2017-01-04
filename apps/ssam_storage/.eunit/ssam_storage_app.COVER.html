@@ -1,0 +1,39 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_storage_app.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_storage/.eunit/ssam_storage_app.erl by COVER 2014-10-07 at 16:20:10
+
+****************************************************************************
+
+        |  -module(ssam_storage_app).
+        |  
+        |  -behaviour(application).
+        |  
+        |  %% Application callbacks
+        |  -export([start/2, stop/1]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_storage.hrl").
+        |  
+        |  %% ===================================================================
+        |  %% Application callbacks
+        |  %% ===================================================================
+        |  
+        |  start(_StartType, _StartArgs) -&gt;
+<font color=red>     0..|      ok = setup_buckets(),</font>
+<font color=red>     0..|  	ssam_storage_sup:start_link().</font>
+        |  
+        |  stop(_State) -&gt;
+<font color=red>     0..|      ok.</font>
+        |  
+        |  setup_buckets() -&gt;
+<font color=red>     0..|  	ok = ssam_riakc:set_bucket(?BUCKET_STORAGE_BUCKET, [{backend, ?BACKEND_ELEVELDB_STORAGE}]),</font>
+<font color=red>     0..|  	lager:info("~p:setup_buckets -&gt; ok", [?MODULE]).</font>
+        |  
+</pre>
+</body>
+</html>

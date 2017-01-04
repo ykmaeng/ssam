@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message_topic_manager.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message_topic_manager.erl by COVER 2014-10-08 at 11:23:43
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_message_topic_manager).
+        |  
+        |  -behaviour(gen_server).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_message.hrl").
+        |  
+        |  %% APIs
+        |  -export([start_link/0]).
+        |  
+        |  %% Callbacks
+        |  -export([init/1,
+        |  		 handle_call/3,
+        |  		 handle_cast/2,
+        |  		 handle_info/2,
+        |  		 terminate/2,
+        |           code_change/3]).
+        |  
+        |  -define(MODULE_TOPIC_SERVER, ssam_message_topic_server).
+        |  
+        |  
+        |  start_link() -&gt;
+<font color=red>     0..|  	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).</font>
+        |  
+        |  %% Callback functions
+        |  
+        |  init([]) -&gt;
+<font color=red>     0..|  	{ok, []}.</font>
+        |  
+        |  handle_call(Request, From, State) -&gt;
+<font color=red>     0..|  	lager:warning("Request: ~p, From ~p", [Request, From]),</font>
+<font color=red>     0..|      {reply, ok, State}.</font>
+        |  
+        |  handle_cast(Request, State) -&gt;
+<font color=red>     0..|  	lager:warning("Request: ~p", [Request]),	</font>
+<font color=red>     0..|      {noreply, State}.</font>
+        |  
+        |  handle_info({From, Request} = Msg, State) -&gt;
+<font color=red>     0..|  	lager:debug("Msg: ~p", [Msg]),</font>
+<font color=red>     0..|  	HandlerPid = spawn(fun() -&gt; handle_request(Request) end),</font>
+<font color=red>     0..|  	reply_to_router(From, {ok, HandlerPid}),</font>
+<font color=red>     0..|  	{noreply, State};</font>
+        |  handle_info(Unknown, State) -&gt;
+<font color=red>     0..|  	lager:error("Unknown: ~p", [Unknown]),</font>
+<font color=red>     0..|  	{noreply, State}.</font>
+        |  
+        |  terminate(Reason, _State) -&gt;
+<font color=red>     0..|  	lager:debug("~p", [Reason]),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  code_change(_OldVsn, State, _Extra) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  %% Private functions 
+        |  
+        |  handle_request(#topic_request{command = subscribe} = Req) -&gt;
+     1..|  	lager:debug("subscribe"),
+     1..|  	state_subscribe(primary, Req);
+        |  
+        |  handle_request(#topic_request{command = unsubscribe} = _Req) -&gt;
+<font color=red>     0..|  	lager:debug("unsubscribe"),</font>
+<font color=red>     0..|  	ok;</font>
+        |  
+        |  handle_request(#topic_request{command = publish} = _Req) -&gt;
+<font color=red>     0..|  	lager:debug("publish"),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  state_subscribe(primary, Req) -&gt;
+     1..|  	Topic = Req#topic_request.topic,
+     1..|  	Pid = forced_server_pid(Topic, primary),
+     1..|  	ok = ssam_message_topic_server:subscribe(Pid, Req).
+        |  
+        |  forced_server_pid(Topic, Role) -&gt;
+     2..|  	case server_pid(Topic#topic.key) of
+        |  		?undef -&gt;
+<font color=red>     0..|  			{ok, Pid} = ssam_message_topic_server:start_link(Topic, Role),</font>
+<font color=red>     0..|  			ok = ssam_data:put(bucket_server_pid(), Topic#topic.key, Pid),</font>
+<font color=red>     0..|  			Pid;</font>
+        |  		Pid -&gt;
+     2..|  			Pid
+        |  	end.
+        |  
+        |  server_pid(TopicKey) -&gt;
+     2..|  	ssam_data:value(bucket_server_pid(), TopicKey).
+        |  
+        |  bucket_server_pid() -&gt;
+     2..|  	?BUCKET_TOPIC_SERVER.
+        |  
+        |  reply_to_router(From, Msg) -&gt;
+<font color=red>     0..|  	From ! {?MODULE, node(), Msg}.</font>
+        |  
+        |  
+        |  
+        |  
+        |  
+        |  
+        |  
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  setup_test_() -&gt;
+     1..|  	{setup,
+     1..|  		fun() -&gt; ok end,	%% initialize
+     1..|  		fun(_X) -&gt; ok end,	%% cleanup
+     1..|  		fun(_X) -&gt; [		%% tests
+        |  			tests(_X)
+        |  		] end
+        |  	}.
+        |  
+        |  
+        |  tests(_X) -&gt;
+     1..|  	[
+        |  		{"server_pid",
+        |  			fun() -&gt;
+     1..|  					Topic = topic(),
+     1..|  					Pid = forced_server_pid(Topic, primary),
+     1..|  					?assert(is_pid(Pid))
+        |  			end
+        |  		},
+        |  		{"handle_request(subscribe)",
+        |  			fun() -&gt;
+     1..|  					Topic = topic(),
+     1..|  					Req = request_subpid(Topic, 0, 0),
+     1..|  					ok = handle_request(Req)
+        |  			end
+        |  		}
+        |  	].
+        |  
+        |  topic() -&gt;
+     2..|  	#topic{key = &lt;&lt;"topic"&gt;&gt;}.
+        |  
+        |  request_subpid(Topic, LastSeq, Count) -&gt;
+     1..|  	#topic_request{
+        |  		id = &lt;&lt;"reqid"&gt;&gt;,
+        |  		account_sid = &lt;&lt;"sid"&gt;&gt;,
+        |  		command = ?subscribe,
+        |  		topic = Topic,
+        |  		body = #topic_subpid{
+        |  				  type = pid,
+        |  				  cursor = &lt;&lt;"cursor"&gt;&gt;,
+        |  				  last_seq = LastSeq,
+        |  				  count = Count,
+        |  				  stream = no,
+        |  				  from = self()
+        |  				 }
+        |  	}.
+        |  
+        |  -endif.
+        |  
+        |  
+        |  
+        |  
+        |  
+        |  
+</pre>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_objects.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_objects.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_objects).
+        |  
+        |  -export([
+        |  		 objects/3,
+        |  		 object/3,
+        |  		 value/2,
+        |  		 value/3,
+        |  		 deleted/2,
+        |  		 list_deleted/2,
+        |  		 appended/2,
+        |  		 replaced/3,
+        |  		 value_replaced/3,
+        |  		 updated/2,
+        |  		 is_all_defined/2,
+        |  		 is_any_defined/2
+        |  		]).
+        |  
+        |  %% Public functions
+        |  
+        |  objects(KeyName, KeyValue, {Objects}) -&gt;
+<font color=red>     0..|  	objects(KeyName, KeyValue, Objects);</font>
+        |  objects(KeyName, KeyValue, Objects) when is_list(Objects) -&gt;
+<font color=red>     0..|  	F = fun({Obj}) -&gt;</font>
+<font color=red>     0..|  		proplists:get_value(KeyName, Obj, []) =:= KeyValue</font>
+        |  	end,
+<font color=red>     0..|  	case lists:filter(F, Objects) of</font>
+<font color=red>     0..|  		[] -&gt; [];</font>
+<font color=red>     0..|  		ObjectsFound -&gt; ObjectsFound</font>
+        |  	end.
+        |  
+        |  object(KeyName, KeyValue, Objects) -&gt;
+<font color=red>     0..|  	case objects(KeyName, KeyValue, Objects) of</font>
+<font color=red>     0..|  		[] -&gt; [];</font>
+<font color=red>     0..|  		[H | _] -&gt; H</font>
+        |  	end.
+        |  
+        |  value(Key, {Props}, Default) -&gt;
+<font color=red>     0..|  	value(Key, Props, Default);</font>
+        |  value(Key, Props, Default) when is_list(Props) -&gt;
+     1..|  	proplists:get_value(Key, Props, Default).
+        |  
+        |  value(Key, {Props}) -&gt;
+<font color=red>     0..|  	value(Key, Props);</font>
+        |  value(Key, Props) when is_list(Props) -&gt;
+<font color=red>     0..|  	value(Key, Props, undefined).</font>
+        |  
+        |  
+        |  deleted(Key, {Props}) when is_binary(Key) -&gt;
+<font color=red>     0..|  	{deleted(Key, Props)};</font>
+        |  deleted(Key, Props) when is_binary(Key), is_list(Props) -&gt;
+        |  	%lists:keydelete(Key, 1, Props);
+<font color=red>     0..|  	proplists:delete(Key, Props);</font>
+        |  deleted(Obj, {Objects}) -&gt;
+<font color=red>     0..|  	deleted(Obj, Objects);</font>
+        |  deleted(Obj, Objects) when is_list(Objects) -&gt;
+<font color=red>     0..|  	lists:delete(Obj, Objects).</font>
+        |  
+<font color=red>     0..|  list_deleted([], Output) -&gt; Output;</font>
+        |  list_deleted([H | T], Props) when is_binary(H) -&gt;
+        |  	%Props1 = lists:keydelete(H, 1, Props),
+<font color=red>     0..|  	Props1 = proplists:delete(H, Props),</font>
+<font color=red>     0..|  	list_deleted(T, Props1).</font>
+        |  
+        |  
+        |  appended(Obj, {Objects}) -&gt;
+<font color=red>     0..|  	{appended(Obj, Objects)};</font>
+        |  appended(Obj, Objects) when is_tuple(Obj), is_list(Objects) -&gt;
+<font color=red>     0..|  	[Obj | Objects].</font>
+        |  
+        |  replaced(ObjFrom, ObjTo, {Objects}) -&gt;
+<font color=red>     0..|  	{replaced(ObjFrom, ObjTo, Objects)};</font>
+        |  replaced(ObjFrom, ObjTo, Objects) when is_list(Objects) -&gt;
+<font color=red>     0..|  	Objects1 = lists:delete(ObjFrom, Objects),</font>
+<font color=red>     0..|  	[ObjTo | Objects1].</font>
+        |  
+        |  
+        |  value_replaced(Key, NewVal, {Props}) -&gt;
+<font color=red>     0..|  	{value_replaced(Key, NewVal, Props)};</font>
+        |  value_replaced(Key, NewVal, Props) when is_list(Props) -&gt;
+        |  	%Props1 = lists:keydelete(Key, 1, Props),
+<font color=red>     0..|  	Props1 = proplists:delete(Key, Props),</font>
+<font color=red>     0..|  	[{Key, NewVal} | Props1].</font>
+        |  
+        |  %% @todo enhance performance
+        |  updated({OldProps}, {NewProps}) -&gt;
+<font color=red>     0..|  	{updated(OldProps, NewProps)};</font>
+        |  updated(OldProps, NewProps) when is_list(OldProps), is_list(NewProps) -&gt;
+        |  	lists:foldl(
+        |  	  fun({N, _}, OldProps1) -&gt;
+        |  			  %lists:keydelete(N, 1, OldProps1)
+<font color=red>     0..|  			  proplists:delete(N, OldProps1)</font>
+        |  	  end, OldProps, NewProps
+<font color=red>     0..|  	 ) ++ NewProps.</font>
+        |  
+        |  
+<font color=red>     0..|  is_all_defined(_, &lt;&lt;&gt;&gt;) -&gt; false;</font>
+<font color=red>     0..|  is_all_defined(_, []) -&gt; false;</font>
+<font color=red>     0..|  is_all_defined([], _) -&gt; true;</font>
+        |  is_all_defined([H | T], Props) when is_list(Props) -&gt;
+        |  	%case lists:keymember(H, 1, Props) of
+<font color=red>     0..|  	case proplists:is_defined(H, Props) of</font>
+<font color=red>     0..|  		true -&gt; is_all_defined(T, Props);</font>
+<font color=red>     0..|  		false -&gt; false </font>
+        |  	end;
+        |  is_all_defined(List, {Props}) -&gt;
+<font color=red>     0..|  	is_all_defined(List, Props).</font>
+        |  
+        |  
+<font color=red>     0..|  is_any_defined(_, []) -&gt; false;</font>
+<font color=red>     0..|  is_any_defined([], _) -&gt; false;</font>
+        |  is_any_defined([H | T], Props) when is_list(Props) -&gt;
+        |  	%case lists:keymember(H, 1, Props) of
+<font color=red>     0..|  	case proplists:is_defined(H, Props) of</font>
+<font color=red>     0..|  		true -&gt; true;</font>
+<font color=red>     0..|  		false -&gt; is_any_defined(T, Props)</font>
+        |  	end;
+        |  is_any_defined(List, {Props}) -&gt;
+<font color=red>     0..|  	is_any_defined(List, Props).</font>
+        |  
+        |  % Private functions
+        |  
+        |  
+        |  
+        |  
+        |  %% Tests
+        |  
+        |  -ifdef(TEST_).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  
+        |  -endif.
+        |  
+        |  
+</pre>
+</body>
+</html>

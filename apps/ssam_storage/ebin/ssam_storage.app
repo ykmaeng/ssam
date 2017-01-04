@@ -1,0 +1,10 @@
+{application,ssam_storage,
+             [{description,[]},
+              {vsn,"0.1.0"},
+              {registered,[]},
+              {applications,[kernel,stdlib]},
+              {mod,{ssam_storage_app,[]}},
+              {env,[]},
+              {modules,[ssam_storage,ssam_storage_app,
+                        ssam_storage_bucket_handler,
+                        ssam_storage_bucket_resource,ssam_storage_sup]}]}.

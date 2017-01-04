@@ -1,0 +1,12 @@
+{application, ssam_account,
+ [
+  {description, ""},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { ssam_account_app, []}},
+  {env, []}
+ ]}.

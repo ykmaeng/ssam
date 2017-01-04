@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_telephony_call_resource.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_telephony/.eunit/ssam_telephony_call_resource.erl by COVER 2014-10-07 at 16:20:12
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_telephony_call_resource).
+        |  
+        |  %-compile(export_all).
+        |  -export([post/2]).
+        |  
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_telephony.hrl").
+        |  
+        |  
+        |  %% @todo Reduce the logic of state functions
+        |  
+        |  %% Public functions
+        |  
+        |  post(#request{
+        |  		uri = [&lt;&lt;"calls"&gt;&gt;],
+        |  		id = ReqId, account_sid = Sid, body = Params
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:post -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	From = proplists:get_value(&lt;&lt;"from"&gt;&gt;, Params),</font>
+<font color=red>     0..|  	To = proplists:get_value(&lt;&lt;"to"&gt;&gt;, Params),</font>
+<font color=red>     0..|  	App = proplists:get_value(&lt;&lt;"app"&gt;&gt;, Params),</font>
+<font color=red>     0..|  	Vars = [{K, V} || {&lt;&lt;"var_", K/bits&gt;&gt;, V} &lt;- Params],</font>
+<font color=red>     0..|  	Params1 = ssam_objects:list_deleted([&lt;&lt;"app"&gt;&gt;], Params), </font>
+<font color=red>     0..|  	Params2 = ssam_objects:value_replaced(&lt;&lt;"acc_id"&gt;&gt;, Sid, Params1), </font>
+<font color=red>     0..|  	Params3 = ssam_objects:value_replaced(&lt;&lt;"app_id"&gt;&gt;, ReqId, Params2), </font>
+<font color=red>     0..|  	handle_post_call({From, To, App, Vars}, Request#request{body = Params3}).</font>
+        |  
+        |  %% Private functions
+        |  
+        |  handle_post_call({From, To, &lt;&lt;"http", _/bits&gt;&gt; = App, Vars}, Request) -&gt;
+<font color=red>     0..|  	ssam_telephony_fs:call(From, To, {url, App}, Vars, Request),</font>
+<font color=red>     0..|  	{ok, ssam_rest:response(?STATUS_CREATED, Request)};</font>
+        |  
+        |  handle_post_call({From, To, &lt;&lt;"&lt;tellet&gt;", _/bits&gt;&gt; = App, Vars}, Request) -&gt;
+<font color=red>     0..|  	Result = ssam_telephony_fs:call(From, To, {xml, App}, Vars, Request),</font>
+<font color=red>     0..|  	{ok, ssam_rest:response(?STATUS_CREATED, Request)};</font>
+        |  
+        |  handle_post_call({From, To, &lt;&lt;"bridge", _/bits&gt;&gt; = App, Vars}, Request) -&gt;
+<font color=red>     0..|  	ssam_telephony_fs:call(From, To, {app, App}, Vars, Request),</font>
+<font color=red>     0..|  	{ok, ssam_rest:response(?STATUS_CREATED, Request)};</font>
+        |  
+        |  handle_post_call({From, To, App, Vars}, Request) -&gt;
+<font color=red>     0..|  	case ssam_telephony_fs:call(From, To, {id, App}, Vars, Request) of</font>
+        |  		ok -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(?STATUS_CREATED, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_CONFLICT, Error, Request)}</font>
+        |  	end.
+</pre>
+</body>
+</html>

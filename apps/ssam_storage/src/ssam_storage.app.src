@@ -1,0 +1,12 @@
+{application, ssam_storage,
+ [
+  {description, ""},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { ssam_storage_app, []}},
+  {env, []}
+ ]}.

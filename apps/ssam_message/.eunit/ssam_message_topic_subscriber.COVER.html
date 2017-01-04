@@ -1,0 +1,219 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message_topic_subscriber.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message_topic_subscriber.erl by COVER 2014-10-08 at 11:23:43
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_message_topic_subscriber).
+        |  
+        |  -behaviour(gen_server).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_message.hrl").
+        |  
+        |  %% APIs
+        |  -export([
+        |  		 start_link/1,
+        |  		 stop/2, stop/3,
+        |  		 add/2,
+        |  		 all/1,
+        |  		 one/2,
+        |  		 remove/2,
+        |  		 length/1,
+        |  		 clear/1
+        |  		]).
+        |  
+        |  %% Callbacks
+        |  -export([init/1,
+        |  		 handle_call/3,
+        |  		 handle_cast/2,
+        |  		 handle_info/2,
+        |  		 terminate/2,
+        |           code_change/3]).
+        |  
+        |  
+        |  -define(SERVER_TIMEOUT, 30*1000).
+        |  
+        |  -record(state, {
+        |  		  topic_key :: ssam_message_topic:key(),
+        |  		  server_timeout :: pos_integer()
+        |  	}).
+        |  
+        |  %% Public functions
+        |  
+        |  start_link(TopicKey) -&gt;
+     1..|  	gen_server:start_link(?MODULE, [TopicKey], []).
+        |  
+        |  stop(Server, TopicKey) -&gt;
+<font color=red>     0..|  	stop(Server, TopicKey, normal).</font>
+        |  
+        |  stop(Server, TopicKey, Reason) -&gt;
+<font color=red>     0..|  	gen_server:cast(Server, {stop, TopicKey, Reason}).</font>
+        |  
+        |  add(Server, Req) -&gt;
+     1..|  	gen_server:cast(Server, {add, Req}).
+        |  
+        |  remove(Server, ReqId) -&gt;
+     1..|  	gen_server:cast(Server, {remove, ReqId}).
+        |  
+        |  all(TopicKey) -&gt;
+     5..|  	ssam_data:value(bucket(), TopicKey, []).
+        |  
+        |  one(TopicKey, ReqId) -&gt;
+     1..|  	case lists:keysearch(ReqId, 1, all(TopicKey)) of
+<font color=red>     0..|  		false -&gt; ?undef;</font>
+     1..|  		{value, Sub} -&gt; Sub
+        |  	end.
+        |  
+        |  length(TopicKey) -&gt;
+<font color=red>     0..|  	erlang:length(all(TopicKey)).</font>
+        |  
+        |  clear(TopicKey) -&gt;
+     1..|  	ssam_data:erase(bucket(), TopicKey).
+        |  
+        |  %% Callback functions
+        |  
+        |  init([TopicKey]) -&gt;
+     1..|  	{ok, #state{topic_key = TopicKey,
+        |  				server_timeout = ?SERVER_TIMEOUT},
+        |  	 ?SERVER_TIMEOUT}.
+        |  
+        |  handle_call(Unknown, From, State) -&gt;
+<font color=red>     0..|  	lager:debug("Unknown: ~p, From ~p", [Unknown, From]),</font>
+<font color=red>     0..|      {reply, ok, State, ?TOPIC_SERVER_TIMEOUT}.</font>
+        |  
+        |  handle_cast({add, Req}, State) -&gt;
+     1..|  	{ok, State1} = handle_add(Req#topic_request.body, Req, State),
+     1..|  	{noreply, State1};
+        |  
+        |  handle_cast({remove, ReqId}, State) -&gt;
+     1..|  	TopicKey = State#state.topic_key,
+     1..|  	All = lists:keydelete(ReqId, 1, all(TopicKey)),
+     1..|  	ok = ssam_data:put(bucket(), TopicKey, All),
+     1..|  	{noreply, State};
+        |  
+        |  handle_cast({stop, Reason}, State) -&gt;
+<font color=red>     0..|  	{stop, Reason, State};</font>
+        |  
+        |  handle_cast(Unknown, State) -&gt;
+<font color=red>     0..|  	lager:error("Unknown Cast: ~p, topic_key: ~p", [Unknown, State#state.topic_key]),	</font>
+<font color=red>     0..|      {noreply, State, ?TOPIC_SERVER_TIMEOUT}.</font>
+        |  
+        |  handle_info(timeout, State) -&gt;
+<font color=red>     0..|  	lager:debug("subscriber timeout. topic_key: ~p", [State#state.topic_key]),</font>
+<font color=red>     0..|  	{noreply, State, ?TOPIC_SERVER_TIMEOUT};</font>
+        |  
+        |  handle_info(Unknown, State) -&gt;
+<font color=red>     0..|  	lager:debug("Unknown Info: ~p, topic_key: ~p", [Unknown, State#state.topic_key]),</font>
+<font color=red>     0..|  	{noreply, State, ?TOPIC_SERVER_TIMEOUT}.</font>
+        |  
+        |  terminate(Reason, _State) -&gt;
+<font color=red>     0..|  	lager:debug("~p", [Reason]),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  code_change(_OldVsn, State, _Extra) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  %% Private functions
+        |  
+        |  handle_add(#topic_subpid{} = Sub, Req, State) -&gt;
+     1..|  	TopicKey = Req#topic_request.topic#topic.key,
+     1..|  	Subs = ssam_data:value(bucket(), TopicKey, []),
+     1..|  	Subs1 = [subform(Req#topic_request.id, Sub) | Subs],
+     1..|  	ok = ssam_data:put(bucket(), TopicKey, Subs1),
+     1..|  	{ok, State}.
+        |  	
+     9..|  bucket() -&gt; ?BUCKET_TOPIC_SUBSCRIBERS.
+        |  
+     1..|  subform(ReqId, SubX) -&gt; {ReqId, SubX}.
+        |  
+        |  
+        |  %% Tests
+        |  %%
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  setup_test_() -&gt;
+     1..|  	{setup,
+        |  		fun() -&gt;
+     1..|  				ok = application:set_env(
+        |  					   ssam, riakc, [{host, "127.0.0.1" }, {port, 8087 }]),
+     1..|  				ssam_riakc:start_link(),
+     1..|  				ssam_cache:start_link(),
+     1..|  				Topic = topic(),
+     1..|  				{ok, Pid} = ?MODULE:start_link(Topic#topic.key),
+     1..|  				Pid
+        |  		end,
+     1..|  		fun(_X) -&gt; ok end,
+     1..|  		fun(X) -&gt; [
+        |  			tests(X)
+        |  		] end
+        |  	}.
+        |  
+        |  topic() -&gt;
+     2..|  	#topic{key = &lt;&lt;"topic"&gt;&gt;}.
+        |  
+        |  request_subpid(Topic, LastSeq, Count) -&gt;
+     1..|  	#topic_request{
+        |  		id = &lt;&lt;"reqid"&gt;&gt;,
+        |  		account_sid = &lt;&lt;"sid"&gt;&gt;,
+        |  		command = ?subscribe,
+        |  		topic = Topic,
+        |  		body = #topic_subpid{
+        |  				  type = pid,
+        |  				  cursor = &lt;&lt;"cursor"&gt;&gt;,
+        |  				  last_seq = LastSeq,
+        |  				  count = Count,
+        |  				  stream = no,
+        |  				  from = self()
+        |  				 }
+        |  	}.
+        |  
+        |  
+        |  tests(Server) -&gt;
+     1..|  	[
+        |  		{"subscribe &amp; unsubscribe",
+        |  		 fun() -&gt;
+     1..|  				 Topic = topic(),
+     1..|  				 Req = request_subpid(Topic, 0, 0),
+     1..|  				 ok = clear(Topic#topic.key),
+     1..|  				 ok = add(Server, Req),
+     1..|  				 timer:sleep(1),
+     1..|  				 1 = erlang:length(all(Topic#topic.key)),
+     1..|  				 ?assert({Req#topic_request.id, Req#topic_request.body}
+     1..|  						 =:= one(Topic#topic.key, Req#topic_request.id)),
+     1..|  				 ?assert([{Req#topic_request.id, Req#topic_request.body}]
+     1..|  						 =:= all(Topic#topic.key)),
+     1..|  				 ok = remove(Server, Req#topic_request.id),
+     1..|  				 timer:sleep(1),
+     1..|  				 0 = erlang:length(all(Topic#topic.key))
+        |  		 end
+        |  		}
+        |  	].
+        |  
+        |  
+        |  -endif.
+</pre>
+</body>
+</html>

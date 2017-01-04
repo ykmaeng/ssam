@@ -1,0 +1,56 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_node_event_handler.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_node_event_handler.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% This file is provided to you under the Apache License,
+        |  %% Version 2.0 (the "License"); you may not use this file
+        |  %% except in compliance with the License.  You may obtain
+        |  %% a copy of the License at
+        |  %%
+        |  %%   http://www.apache.org/licenses/LICENSE-2.0
+        |  %%
+        |  %% Unless required by applicable law or agreed to in writing,
+        |  %% software distributed under the License is distributed on an
+        |  %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+        |  %% KIND, either express or implied.  See the License for the
+        |  %% specific language governing permissions and limitations
+        |  %% under the License.
+        |  
+        |  %% Copyright (c) 2007-2011 Basho Technologies, Inc.  All Rights Reserved.
+        |  
+        |  -module(ssam_node_event_handler).
+        |  -behaviour(gen_event).
+        |  
+        |  %% gen_event callbacks
+        |  -export([init/1, handle_event/2, handle_call/2,
+        |           handle_info/2, terminate/2, code_change/3]).
+        |  -record(state, {}).
+        |  
+        |  init([]) -&gt;
+<font color=red>     0..|      {ok, #state{}}.</font>
+        |  
+        |  handle_event({service_update, _Services}, State) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  handle_call(_Event, State) -&gt;
+<font color=red>     0..|      {ok, ok, State}.</font>
+        |  
+        |  handle_info(_Info, State) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  terminate(_Reason, _State) -&gt;
+<font color=red>     0..|      ok.</font>
+        |  
+        |  code_change(_OldVsn, State, _Extra) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+</pre>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_riakc.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_riakc.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_riakc).
+        |  
+        |  -behaviour(gen_server).
+        |  %-behaviour(poolboy_worker).
+        |  
+        |  -export([
+        |  		start_link/0,
+        |  		ping/0,
+        |  		put/3,
+        |  		get/2,
+        |  		delete/2,
+        |  		keys/1,
+        |  		list_buckets/0,
+        |  		set_bucket/2,
+        |  		key_filters/2,
+        |  		map/1,
+        |  		mapred/1,
+        |  		clear/1
+        |  	]).
+        |  
+        |  -export([init/1,handle_call/3, handle_cast/2, handle_info/2, terminate/2,
+        |           code_change/3]).
+        |  
+        |  -record(state, {
+        |  		  conn :: undefined | pid()
+        |  		 }).
+        |  
+        |  ping() -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, ping).</font>
+        |  
+        |  put(Bucket, Key, Value) -&gt;
+     1..|  	gen_server:call(?MODULE, {put, Bucket, Key, Value}).
+        |  
+        |  get(Bucket, Key) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {get, Bucket, Key}).</font>
+        |  
+        |  delete(Bucket, Key) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {delete, Bucket, Key}).</font>
+        |  
+        |  keys(Bucket) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {keys, Bucket}).</font>
+        |  
+        |  list_buckets() -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, list_buckets).</font>
+        |  
+        |  set_bucket(Bucket, BucketProps) -&gt;
+     1..|  	gen_server:call(?MODULE, {set_bucket, Bucket, BucketProps}).
+        |  
+        |  key_filters(Bucket, KeyFilters) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {key_filters, Bucket, KeyFilters}).</font>
+        |  
+        |  map(BucketKeyPairs) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {map, BucketKeyPairs}).</font>
+        |  
+        |  mapred(BucketKeyPairs) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {mapred, BucketKeyPairs}).</font>
+        |  
+        |  clear(Bucket) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {clear, Bucket}).</font>
+        |  
+        |  
+        |  %% Callbacks
+        |  %%
+        |  start_link() -&gt;
+<font color=red>     0..|  	{ok, Props} = application:get_env(ssam, riakc),</font>
+<font color=red>     0..|      gen_server:start_link({local, ?MODULE}, ?MODULE, Props, []).</font>
+        |  
+        |  init(Args) -&gt;
+     1..|      Host = proplists:get_value(host, Args),
+     1..|      Port = proplists:get_value(port, Args),
+     1..|      {ok, Conn} = riakc_pb_socket:start_link(Host, Port),
+     1..|      {ok, #state{conn=Conn}}.
+        |  
+        |  handle_call(ping, _From, #state{conn=Conn}=State) -&gt;
+<font color=red>     0..|  	{reply, riakc_pb_socket:ping(Conn), State};</font>
+        |  handle_call({put, Bucket, Key, Value}, _From, #state{conn=Conn}=State) -&gt;
+     1..|  	Object = riakc_obj:new(Bucket, Key, Value),
+     1..|  	case riakc_pb_socket:put(Conn, Object) of
+        |  		ok -&gt;
+     1..|  			lager:debug("put ok, Bucket: ~p, Key: ~p", [Bucket, Key]),
+     1..|  			{reply, ok, State};
+        |  		{error, Reason} -&gt;
+<font color=red>     0..|  			lager:error("put error, ~p", [Reason]),</font>
+<font color=red>     0..|  			{reply, {error, Reason}, State}</font>
+        |  	end;
+        |  handle_call({get, Bucket, Key}, _From, #state{conn=Conn}=State) -&gt;
+<font color=red>     0..|  	Result = case riakc_pb_socket:get(Conn, Bucket, Key) of</font>
+<font color=red>     0..|  		{ok, Object} -&gt; {ok, riakc_obj:get_value(Object)};</font>
+<font color=red>     0..|  		{error, notfound} -&gt; {error, not_found};</font>
+        |  		{error, Reason} -&gt;
+<font color=red>     0..|  			lager:error("get, Reason: ~p, Bucket: ~p, Key: ~p", [Reason, Bucket, Key]),</font>
+<font color=red>     0..|  			{error, Reason};</font>
+<font color=red>     0..|  		Else -&gt; {error, Else}</font>
+        |  	end,
+<font color=red>     0..|      {reply, Result, State};</font>
+        |  handle_call({delete, Bucket, Key}, _From, #state{conn=Conn}=State) -&gt;
+<font color=red>     0..|  	ok = riakc_pb_socket:delete(Conn, Bucket, Key),</font>
+<font color=red>     0..|  	lager:debug("delete, Bucket: ~p, Key: ~p", [Bucket, Key]),</font>
+<font color=red>     0..|      {reply, ok, State};</font>
+        |  handle_call({key_filters, Bucket, Filters}, _From, #state{conn=Conn}=State) -&gt;
+<font color=red>     0..|  	Result = case riakc_pb_socket:mapred(Conn, {Bucket, Filters}, []) of</font>
+<font color=red>     0..|  		{ok, []} -&gt; {ok, []};</font>
+<font color=red>     0..|  		{ok, [{_, Values}]} -&gt; {ok, Values};</font>
+<font color=red>     0..|  		Else -&gt; Else</font>
+        |  	end,
+<font color=red>     0..|  	lager:debug("key_filters, Bucket: ~p, Filters: ~p", [Bucket, Filters]),</font>
+<font color=red>     0..|  	{reply, Result, State};</font>
+        |  handle_call({map, BucketKeyPairs}, _From, #state{conn=Conn}=State) -&gt;
+<font color=red>     0..|  	Result = case riakc_pb_socket:mapred(Conn, BucketKeyPairs, [</font>
+        |  		{map, {modfun, riak_kv_mapreduce, map_object_value}, undefined, true}
+        |  	]) of
+<font color=red>     0..|  		{ok, [{0, Results}]} -&gt; {ok, Results};</font>
+<font color=red>     0..|  		{ok, []} -&gt; {ok, []};</font>
+<font color=red>     0..|  		{error, not_found} -&gt; {ok, []}</font>
+        |  	end,
+<font color=red>     0..|      {reply, Result, State};</font>
+        |  handle_call({mapred, BucketKeyPairs}, _From, #state{conn=Conn}=State) -&gt;
+<font color=red>     0..|  	Results = riakc_pb_socket:mapred(Conn, BucketKeyPairs, [</font>
+        |  		{map, {modfun, riak_kv_mapreduce, map_object_value}, undefined, false},
+        |  		{reduce, {modfun, riak_kv_mapreduce, reduce_set_union}, undefined, true}
+        |  	]),
+<font color=red>     0..|      {reply, Results, State};</font>
+        |  handle_call({keys, Bucket}, _From, #state{conn=Conn}=State) -&gt;
+<font color=red>     0..|  	{ok, Results} = riakc_pb_socket:list_keys(Conn, Bucket),</font>
+<font color=red>     0..|      {reply, {ok, Results}, State};</font>
+        |  handle_call(list_buckets, _From, #state{conn=Conn}=State) -&gt;
+<font color=red>     0..|  	case riakc_pb_socket:list_buckets(Conn) of</font>
+<font color=red>     0..|  		{ok, Result} -&gt; {reply, {ok, Result}, State};</font>
+<font color=red>     0..|  		{error, Error} -&gt; {reply, {error, Error}, State}</font>
+        |  	end;
+        |  handle_call({set_bucket, Bucket, BucketProps}, _From, #state{conn=Conn}=State) -&gt;
+     1..|  	ok = riakc_pb_socket:set_bucket(Conn, Bucket, BucketProps),
+     1..|      {reply, ok, State};
+        |  handle_call({clear, Bucket}, _From, #state{conn=Conn}=State) -&gt;
+<font color=red>     0..|  	{ok, Keys} = riakc_pb_socket:list_keys(Conn, Bucket),</font>
+<font color=red>     0..|  	[riakc_pb_socket:delete(Conn, Bucket, Key) || Key &lt;- Keys],</font>
+<font color=red>     0..|      {reply, ok, State};</font>
+        |  handle_call(_Request, _From, State) -&gt;
+<font color=red>     0..|      {reply, ok, State}.</font>
+        |  
+        |  handle_cast(_Msg, State) -&gt;
+<font color=red>     0..|      {noreply, State}.</font>
+        |  
+        |  handle_info(_Info, State) -&gt;
+<font color=red>     0..|      {noreply, State}.</font>
+        |  
+        |  terminate(_Reason, #state{conn=_Conn}) -&gt;
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  code_change(_OldVsn, State, _Extra) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  
+        |  %% Tests
+        |  %%
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  setup_test_() -&gt;
+     1..|  	{setup,
+        |  		fun() -&gt;
+     1..|  				case gen_server:start_link({local, ?MODULE},
+        |  										   ?MODULE,
+        |  										   [{host, "127.0.0.1"}, {port, 8087}],
+        |  										   []) of
+     1..|  					{ok, Pid} -&gt; is_pid(Pid);
+<font color=red>     0..|  					{error, {already_started, _}} -&gt; true</font>
+        |  				end
+        |  		end,
+     1..|  		fun(_X) -&gt; ok end,	%% cleanup
+     1..|  		fun(_X) -&gt; [		%% tests
+        |  			tests(_X)
+        |  		] end
+        |  	}.
+        |  
+        |  tests(_X) -&gt;
+     1..|  	[
+        |  		{"list_buckets",
+        |  			fun() -&gt;
+     1..|  					ok
+        |  					%io:format(user, "~n~p~n", [ssam_riakc:list_buckets()])
+        |  			end
+        |  		},
+        |  		{"set_bucket",
+        |  			fun() -&gt;
+     1..|  					ok = ssam_riakc:set_bucket(&lt;&lt;"m.bucket1"&gt;&gt;, [{backend, &lt;&lt;"backend_memory"&gt;&gt;}])
+        |  			end
+        |  		}
+        |  	].
+        |  
+        |  -endif.
+        |  
+</pre>
+</body>
+</html>

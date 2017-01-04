@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_httpc.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_httpc.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_httpc).
+        |  
+        |  -export([
+        |  		 encoded/1,
+        |  		 decoded/1,
+        |  		 request/2
+        |  		]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  
+        |  request(get, Url) when is_binary(Url) -&gt;
+<font color=red>     0..|  	request(get, {Url});</font>
+        |  request(get, {Url}) -&gt;
+<font color=red>     0..|  	request(get, {Url, [], [], []});</font>
+        |  request(get, {Url, Params}) -&gt;
+<font color=red>     0..|  	request(get, {Url, Params, [], []});</font>
+        |  request(get, {Url, Params, Headers}) -&gt;
+<font color=red>     0..|  	request(get, {Url, Params, Headers, []});</font>
+        |  request(get, {Url, Params, Headers, Options}) -&gt;
+<font color=red>     0..|  	EncodedParam = param_encoded(Params),</font>
+<font color=red>     0..|  	EncodedUrl = &lt;&lt;Url/bits, $?, EncodedParam/bits&gt;&gt;,</font>
+<font color=red>     0..|  	lager:debug("Url: ~p", [EncodedUrl]),</font>
+<font color=red>     0..|  	case httpc:request(get, {binary_to_list(EncodedUrl), Headers}, Options, []) of</font>
+        |  		{ok, {{_Version, StatusCode, _ReasonPhrase}, ResHeaders, ResBody}} -&gt;
+<font color=red>     0..|  			{ok, StatusCode, ResHeaders, ResBody};</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			lager:warning("Url: ~p, Params: ~p", [Url, Params]),</font>
+<font color=red>     0..|  			{?error, Reason}</font>
+        |  	end;
+        |  
+        |  request(post, {&lt;&lt;"application/x-www-form-urlencoded"&gt;&gt; = ContentType,
+        |  			   Url, Params}) when is_list(Params) -&gt;
+<font color=red>     0..|  	EncodedParam = param_encoded(Params),</font>
+<font color=red>     0..|  	request(post, {ContentType, Url, EncodedParam, [], []});</font>
+        |  request(post, {ContentType, Url, EncodedBody, Headers}) -&gt;
+<font color=red>     0..|  	request(post, {ContentType, Url, EncodedBody, Headers, []});</font>
+        |  request(post, {&lt;&lt;"application/x-www-form-urlencoded"&gt;&gt; = ContentType,
+        |  			   Url, Params, Headers, Options}) -&gt;
+<font color=red>     0..|  	EncodedParam = param_encoded(Params),</font>
+<font color=red>     0..|  	request(post, {ContentType, Url, EncodedParam, Headers, Options});</font>
+        |  request(post, {ContentType, Url, Body, Headers, Options}) -&gt;
+<font color=red>     0..|  	case httpc:request(post, {binary_to_list(Url), Headers,</font>
+        |  							  binary_to_list(ContentType), Body}, Options, []) of
+        |  		{ok, {{_Version, StatusCode, _ReasonPhrase}, ResHeaders, ResBody}} -&gt;
+<font color=red>     0..|  			{ok, StatusCode, ResHeaders, ResBody};</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			lager:warning("post, ~p, Url: ~p", [Reason, Url]),</font>
+<font color=red>     0..|  			{?error, Reason}</font>
+        |  	end.
+        |  
+<font color=red>     0..|  encoded(Url) when is_binary(Url) -&gt; cow_qs:urlencode(Url);</font>
+<font color=red>     0..|  encoded(Url) when is_list(Url) -&gt; http_uri:encode(Url).</font>
+        |  
+<font color=red>     0..|  decoded(Url) when is_binary(Url) -&gt; cow_qs:urldecode(Url);</font>
+<font color=red>     0..|  decoded(Url) when is_list(Url) -&gt; http_uri:decode(Url).</font>
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  param_encoded(Params) when is_list(Params) -&gt;
+<font color=red>     0..|  	&lt;&lt; &lt;&lt;(encoded(K))/bits, $=, (encoded(V))/bits, $&amp;&gt;&gt; || {K, V} &lt;- Params &gt;&gt;.</font>
+</pre>
+</body>
+</html>

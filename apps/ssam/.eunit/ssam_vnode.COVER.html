@@ -1,0 +1,175 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_vnode.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_vnode.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_vnode).
+        |  
+        |  -behaviour(riak_core_vnode).
+        |  
+        |  -export([start_vnode/1,
+        |  		 service_up/0,
+        |  		 route/3,
+        |  		 route/4,
+        |  		 local_route/3,
+        |  		 idle_nodes/3,
+        |  		 up_nodes/0
+        |  		]).
+        |  
+        |  
+        |  -export([init/1,
+        |           terminate/2,
+        |           handle_command/3,
+        |           is_empty/1,
+        |           delete/1,
+        |           handle_handoff_command/3,
+        |           handoff_starting/2,
+        |           handoff_cancelled/1,
+        |           handoff_finished/2,
+        |           handle_handoff_data/2,
+        |           encode_handoff_item/2,
+        |           handle_coverage/4,
+        |           handle_exit/3]).
+        |  
+        |  -include("ssam.hrl").
+        |  -include_lib("riak_core/include/riak_core_vnode.hrl").
+        |  
+        |  -record(state, {
+        |  		  partition :: integer()
+        |  		 }).
+        |  
+        |  %% APIs
+        |  
+        |  start_vnode(I) -&gt;
+<font color=red>     0..|      riak_core_vnode_master:get_vnode_pid(I, ?MODULE).</font>
+        |  
+        |  service_up() -&gt;
+<font color=red>     0..|  	ok = riak_core_ring_events:add_guarded_handler(ssam_ring_event_handler, []),</font>
+<font color=red>     0..|  	ok = riak_core_node_watcher_events:add_guarded_handler(ssam_node_event_handler, []),</font>
+<font color=red>     0..|  	ok = riak_core:register(ssam, [{vnode_module, ssam_vnode}]),</font>
+<font color=red>     0..|  	ok = riak_core_node_watcher:service_up(ssam, self()).</font>
+        |  
+        |  local_route(Module, Fun, Request) -&gt;
+<font color=red>     0..|  	invoke(Module, Fun, Request, self()).</font>
+        |  
+        |  route(Module, Fun, #request{service = Service, path = Path} = Request) -&gt;
+<font color=red>     0..|  	riak_core_vnode_master:sync_spawn_command(preferred_node(Service, Path),</font>
+        |  											  {Module, Fun, Request},
+        |  											  ssam_vnode_master).
+        |  
+        |  route(Module, Fun, Request, {Bucket, Key}) -&gt;
+<font color=red>     0..|  	PrefNode = preferred_node(Bucket, Key),</font>
+<font color=red>     0..|  	riak_core_vnode_master:sync_spawn_command(PrefNode,</font>
+        |  											  {Module, Fun, Request},
+        |  											  ssam_vnode_master).
+        |  
+        |  idle_nodes([], Nodes, Len) -&gt;
+<font color=red>     0..|  	lists:sublist(Nodes, Len);</font>
+        |  idle_nodes([Except | Rest], Nodes, Len) -&gt;
+<font color=red>     0..|  	Fun = fun(Node) -&gt; Node =/= Except end,</font>
+<font color=red>     0..|  	case lists:splitwith(Fun, Nodes) of</font>
+<font color=red>     0..|  		{Takes, []} -&gt; idle_nodes(Rest, Takes, Len);</font>
+<font color=red>     0..|  		{Takes, [_ | Drops]} -&gt; idle_nodes(Rest, Drops++Takes, Len)</font>
+        |  	end.
+        |  
+        |  up_nodes() -&gt;
+<font color=red>     0..|  	riak_core_node_watcher:nodes(?RIAK_CORE_RING_NAME).</font>
+        |  
+        |  
+        |  %% Callback functions
+        |  
+        |  init([Partition]) -&gt;
+<font color=red>     0..|  	lager:debug("Pid: ~p, Partition: ~p", [self(), Partition]),</font>
+<font color=red>     0..|      {ok, #state{partition = Partition}}.</font>
+        |  
+        |  handle_command({Module, Fun, Request}, Sender,
+        |  			   State = #state{partition = Partition}) -&gt;
+<font color=red>     0..|      lager:debug("Module: ~w, Method: ~w, Request: ~p, Partition: ~w",</font>
+        |  				[Module, Fun, Request, Partition]),
+<font color=red>     0..|  	Result = invoke(Module, Fun, Request, Sender),</font>
+<font color=red>     0..|      {reply, Result, State};</font>
+        |  handle_command(Request, _Sender,
+        |  			   State = #state{partition = Partition}) -&gt;
+<font color=red>     0..|      lager:debug("Request: ~p, Partition: ~w", [Request, Partition]),</font>
+<font color=red>     0..|      {reply, {error, unknown_request}, State}.</font>
+        |  
+        |  handle_handoff_command(Message = #riak_core_fold_req_v1{foldfun=_Fun, acc0=_Acc0}, _Sender,
+        |  					   State = #state{partition = Partition}) -&gt;
+<font color=red>     0..|      lager:debug("Message: ~p, Partition: ~w", [Message, Partition]),</font>
+<font color=red>     0..|      {noreply, State}.</font>
+        |  
+        |  handoff_starting(TargetNode,
+        |  				 State = #state{partition = Partition}) -&gt;
+<font color=red>     0..|      lager:debug("TargetNode: ~p, Partition: ~w", [TargetNode, Partition]),</font>
+<font color=red>     0..|      {true, State}.</font>
+        |  
+        |  handoff_cancelled(State = #state{partition = Partition}) -&gt;
+<font color=red>     0..|      lager:debug("Partition: ~w", [Partition]),</font>
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  handoff_finished(TargetNode, State = #state{partition = Partition}) -&gt; 
+<font color=red>     0..|      lager:debug("TargetNode: ~w, Partition: ~w", [TargetNode, Partition]),</font>
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  handle_handoff_data(Data, State = #state{partition = Partition}) -&gt; 
+<font color=red>     0..|  	DataBin = binary_to_term(Data)	,</font>
+<font color=red>     0..|      lager:debug("DataBin: ~p, Partition: ~w", [DataBin, Partition]),</font>
+<font color=red>     0..|      {reply, ok, State}.</font>
+        |  
+        |  encode_handoff_item(ObjectName, ObjectValue) -&gt;
+<font color=red>     0..|      lager:debug("ObjectName: ~p, ObjectValue: ~p", [ObjectName, ObjectValue]),</font>
+<font color=red>     0..|      term_to_binary({ObjectName, ObjectValue}).</font>
+        |  
+        |  is_empty(State = #state{partition = Partition}) -&gt;
+<font color=red>     0..|      lager:debug("Partition: ~p", [Partition]),</font>
+<font color=red>     0..|      {true, State}.</font>
+        |  
+        |  delete(State) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  handle_coverage(_Req, _KeySpaces, _Sender, State) -&gt;
+<font color=red>     0..|      {stop, not_implemented, State}.</font>
+        |  
+        |  handle_exit(_Pid, _Reason, State) -&gt;
+<font color=red>     0..|      {noreply, State}.</font>
+        |  
+        |  terminate(_Reason, _State) -&gt;
+<font color=red>     0..|      ok.</font>
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  preferred_node(Bucket, Key) -&gt;
+<font color=red>     0..|  	Idx = riak_core_util:chash_key({Bucket, Key}),</font>
+<font color=red>     0..|      [PrefNode] = riak_core_apl:get_apl(Idx, 1, ?RIAK_CORE_RING_NAME),</font>
+<font color=red>     0..|  	PrefNode.</font>
+        |  
+        |  invoke(Module, Fun, Request, Sender) -&gt;
+<font color=red>     0..|  	lager:debug("Module: ~w, Fun: ~w, Sender: ~w", [Module, Fun, Sender]),</font>
+<font color=red>     0..|  	Module:Fun(Request, Sender).</font>
+        |  
+</pre>
+</body>
+</html>

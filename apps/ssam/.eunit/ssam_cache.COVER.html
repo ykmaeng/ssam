@@ -1,0 +1,380 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_cache.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_cache.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  %% @todo Change the storage from dict to ets
+        |  
+        |  -module(ssam_cache).
+        |  
+        |  -behaviour(gen_server).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  
+        |  %% APIs
+        |  -export([start_link/0,
+        |  		 value/2, value/3,
+        |  		 add/3, add/4,
+        |  		 add_proplist/2, add_proplist/3,
+        |  		 new/3, new/4,
+        |  		 put/3, put/4,
+        |  		 delete/1, delete/2,
+        |  		 size/1,
+        |  		 keys/1,
+        |  		 buckets/0,
+        |  		 to_list/1,
+        |  		 global_get/2,
+        |  		 global_put/3,
+        |  		 global_delete/2,
+        |  		 purge/0
+        |  		]).
+        |  
+        |  %% Callbacks
+        |  -export([init/1,
+        |  		 handle_call/3,
+        |  		 handle_cast/2,
+        |  		 handle_info/2,
+        |  		 terminate/2,
+        |           code_change/3]).
+        |  
+        |  
+        |  -define(buckets, buckets).
+        |  -define(PURGE_TIMEOUT_MS, 3600*1000). %% 1 hour
+        |  -define(SERVER_TIMEOUT_MS, 60*1000). %% 1 min
+        |  
+        |  %% Be careful when you change this value.
+        |  %% It must be matched with expiry time of Riak backend 'memory_day' 
+        |  -define(DATA_TIMEOUT_SECS, 86400*1). %% 1 day
+        |  
+        |  -record(data, {
+        |  		  value :: ?undefined | term(),
+        |  		  ttl :: 0 | pos_integer(),
+        |  		  touched :: 0 | ssam:timestamp(),
+        |  		  created :: 0 | ssam:timestamp()
+        |  		 }).
+        |  
+        |  -record(state, {
+        |  		  server_timeout = ?SERVER_TIMEOUT_MS :: non_neg_integer()
+        |  		 }).
+        |  
+        |  
+        |  
+        |  %% APIs
+        |  
+        |  start_link() -&gt;
+     1..|      gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+        |  
+        |  value(Bucket, Key) -&gt;
+<font color=red>     0..|  	value(Bucket, Key, ?undefined).</font>
+        |  
+        |  value(Bucket, Key, Default) -&gt;
+     1..|  	gen_server:call(?MODULE, {value, Bucket, Key, Default}).
+        |  
+        |  add(Bucket, Key, Value) -&gt;
+<font color=red>     0..|  	add(Bucket, Key, Value, default_props()).</font>
+        |  
+        |  add(Bucket, Key, Value, Props) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {add, Bucket, Key, Value, Props}).</font>
+        |  
+        |  add_proplist(Bucket, Proplist) -&gt;
+<font color=red>     0..|  	add_proplist(Bucket, Proplist, default_props()).</font>
+        |  
+        |  add_proplist(Bucket, Proplist, Props) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {add_proplist, Bucket, Proplist, Props}).</font>
+        |  
+        |  put(Bucket, Key, Value) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {put, Bucket, Key, Value, default_props()}).</font>
+        |  
+        |  put(Bucket, Key, Value, Props) -&gt;
+     1..|  	gen_server:call(?MODULE, {put, Bucket, Key, Value, Props}).
+        |  
+        |  new(Bucket, Key, Value) -&gt;
+<font color=red>     0..|  	new(Bucket, Key, Value, []).</font>
+        |  
+        |  new(Bucket, Key, Value, Props) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {new, Bucket, Key, Value, Props}).</font>
+        |  
+        |  delete(Bucket) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {delete, Bucket}).</font>
+        |  
+        |  delete(Bucket, Key) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {delete, Bucket, Key}).</font>
+        |  
+        |  size(Bucket) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {size, Bucket}).</font>
+        |  
+        |  to_list(Bucket) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {to_list, Bucket}).</font>
+        |  
+        |  keys(Bucket) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {keys, Bucket}).</font>
+        |  
+        |  buckets() -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, buckets).</font>
+        |  
+        |  global_get(Bucket, Key) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {global_get, Bucket, Key}).</font>
+        |  
+        |  global_put(Bucket, Key, Value) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {global_put, Bucket, Key, Value}).</font>
+        |  
+        |  global_delete(Bucket, Key) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {global_delete, Bucket, Key}).</font>
+        |  
+        |  purge() -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {purge, all}).</font>
+        |  
+        |  %% Callbacks
+        |  
+        |  init([]) -&gt;
+        |  	%process_flag(trap_exit, true),	
+     1..|  	erlang:send_after(?PURGE_TIMEOUT_MS, self(), purge),
+     1..|  	{ok, #state{}, ?SERVER_TIMEOUT_MS}.
+        |  
+        |  handle_call({value, Bucket, Key, Default},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+     1..|  	Dict = local_dict(Bucket),
+     1..|  	Result = 
+        |  		case dict:find(Key, Dict) of
+        |  			{ok, Data} -&gt;
+     1..|  				case is_expired(Data) of
+<font color=red>     0..|  					true -&gt; Default;</font>
+        |  					false -&gt;
+     1..|  						Data1 = Data#data{touched = ssam_util:now_sec()},
+     1..|  						Dict1 = dict:store(Key, Data1, Dict),
+     1..|  						put(Bucket, Dict1),
+     1..|  						Data#data.value
+        |  				end;
+        |  			error -&gt;
+<font color=red>     0..|  				Default</font>
+        |  		end,
+     1..|  	{reply, Result, State, Timeout};
+        |  
+        |  handle_call({add, Bucket, Key, Value, Props},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	Dict = dict:append(Key, to_data(Value, Props), local_dict(Bucket)),</font>
+<font color=red>     0..|  	put(Bucket, Dict),</font>
+<font color=red>     0..|      {reply, ok, State, Timeout};</font>
+        |  
+        |  handle_call({new, Bucket, Key, Value, Props},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	case dict:is_key(Key, Dict = local_dict(Bucket)) of</font>
+        |  		false -&gt;
+<font color=red>     0..|  			Dict1 = dict:append(Key, to_data(Value, Props), Dict),</font>
+<font color=red>     0..|  			put(Bucket, Dict1),</font>
+<font color=red>     0..|  			{reply, ok, State, Timeout};</font>
+        |  		true -&gt;
+<font color=red>     0..|  			{reply, {?error, ?already_defined}, State, Timeout}</font>
+        |  	end;
+        |  
+        |  handle_call({put, Bucket, Key, Value, Props},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+     1..|  	Dict = dict:store(Key, to_data(Value, Props), local_dict(Bucket)),
+     1..|  	put(Bucket, Dict),
+     1..|      {reply, ok, State, Timeout};
+        |  
+        |  handle_call({delete, Bucket, Key},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	Dict = dict:erase(Key, local_dict(Bucket)),</font>
+<font color=red>     0..|  	put(Bucket, Dict),</font>
+<font color=red>     0..|      {reply, ok, State, Timeout};</font>
+        |  
+        |  handle_call({delete, Bucket},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	erase(Bucket),</font>
+<font color=red>     0..|      {reply, ok, State, Timeout};</font>
+        |  
+        |  handle_call({keys, Bucket},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	Keys = dict:fetch_keys(local_dict(Bucket)),</font>
+<font color=red>     0..|      {reply, Keys, State, Timeout};</font>
+        |  
+        |  handle_call({to_list, Bucket},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	List = dict:to_list(local_dict(Bucket)),</font>
+<font color=red>     0..|      {reply, List, State, Timeout};</font>
+        |  
+        |  handle_call({add_proplist, Bucket, Proplist, Props},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	F = fun({K, V}, OldDict) -&gt;</font>
+<font color=red>     0..|  			dict:append(K, to_data(V, Props), OldDict)</font>
+        |  		end,
+<font color=red>     0..|  	Dict = lists:foldl(F, local_dict(Bucket), Proplist),</font>
+<font color=red>     0..|  	put(Bucket, Dict),</font>
+<font color=red>     0..|      {reply, ok, State, Timeout};</font>
+        |  
+        |  handle_call(buckets,
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	Buckets = get(?buckets),</font>
+<font color=red>     0..|      {reply, Buckets, State, Timeout};</font>
+        |  
+        |  handle_call({global_get, Bucket, Key},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	Key1 = term_to_binary({Bucket, Key}),</font>
+<font color=red>     0..|  	Result = ssam_riakc:get(?BUCKET_CACHE, Key1),</font>
+<font color=red>     0..|      {reply, Result, State, Timeout};</font>
+        |  
+        |  handle_call({global_put, Bucket, Key, Value},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	Key1 = term_to_binary({Bucket, Key}),</font>
+<font color=red>     0..|  	Result = ssam_riakc:put(?BUCKET_CACHE, Key1, Value),</font>
+<font color=red>     0..|      {reply, Result, State, Timeout};</font>
+        |  
+        |  handle_call({global_delete, Bucket, Key},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	Key1 = term_to_binary({Bucket, Key}),</font>
+<font color=red>     0..|  	Result = ssam_riakc:delete(?BUCKET_CACHE, Key1),</font>
+<font color=red>     0..|      {reply, Result, State, Timeout};</font>
+        |  
+        |  handle_call({purge, all},
+        |  			_From, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	Result = purge(all),</font>
+<font color=red>     0..|      {reply, Result, State, Timeout};</font>
+        |  
+        |  handle_call(_Request, _From, State) -&gt;
+<font color=red>     0..|      {reply, ok, State}.</font>
+        |  
+        |  handle_cast(_Request, State) -&gt;
+<font color=red>     0..|      {noreply, State}.</font>
+        |  
+        |  handle_info(purge, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	lager:debug("purge, Timeout: ~p", [?PURGE_TIMEOUT_MS]),</font>
+<font color=red>     0..|  	purge(all),</font>
+<font color=red>     0..|  	erlang:send_after(?PURGE_TIMEOUT_MS, self(), purge),</font>
+<font color=red>     0..|      {noreply, State, Timeout};</font>
+        |  
+        |  handle_info({reload, Bucket, Key}, #state{server_timeout = Timeout} = State) -&gt;
+<font color=red>     0..|  	lager:debug("reload, Bucket: ~p, Key: ~p", [Bucket, Key]),</font>
+<font color=red>     0..|  	Dict = dict:erase(Key, local_dict(Bucket)),</font>
+<font color=red>     0..|  	put(Bucket, Dict),</font>
+<font color=red>     0..|  	{noreply, State, Timeout};</font>
+        |  
+        |  handle_info(timeout, State) -&gt;
+<font color=red>     0..|  	lager:debug("timeout, hibernate"),</font>
+<font color=red>     0..|  	purge(all),</font>
+<font color=red>     0..|      {noreply, State, hibernate};</font>
+        |  
+        |  handle_info(_Msg, State) -&gt;
+<font color=red>     0..|  	{noreply, State}.</font>
+        |  
+        |  terminate(Reason, _State) -&gt;
+<font color=red>     0..|  	lager:warning("~p", [Reason]),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  code_change(_OldVsn, State, _Extra) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  purge(all) -&gt;
+<font color=red>     0..|  	F = fun(Bucket) -&gt;</font>
+<font color=red>     0..|  		{ok, Dict} = purge(local_dict(Bucket)),</font>
+<font color=red>     0..|  		case dict:size(Dict) &gt; 0 of</font>
+        |  			true -&gt;
+<font color=red>     0..|  				put(Bucket, Dict);</font>
+        |  			false -&gt;
+<font color=red>     0..|  				delete_bucket(Bucket)</font>
+        |  		end
+        |  	end,
+<font color=red>     0..|  	case get(?buckets) of</font>
+        |  		undefined -&gt;
+<font color=red>     0..|  			put(?buckets, []);</font>
+        |  		Buckets -&gt;
+<font color=red>     0..|  			lists:foreach(F, Buckets)</font>
+        |  	end;
+        |  purge(Dict) -&gt;
+<font color=red>     0..|  	F = fun(_, #data{ttl = TTL, touched = Touched}) -&gt;</font>
+<font color=red>     0..|  			not ssam_util:is_expired(Touched, TTL)</font>
+        |  		end,
+<font color=red>     0..|  	Dict1 = dict:filter(F, Dict),</font>
+<font color=red>     0..|  	{ok, Dict1}.</font>
+        |  
+        |  add_bucket(Bucket) -&gt;
+     1..|  	case get(?buckets) of
+        |  		undefined -&gt;
+     1..|  			put(?buckets, [Bucket]);
+        |  		Buckets -&gt;
+<font color=red>     0..|  			put(?buckets, (Buckets ++ [Bucket]))</font>
+        |  	end.
+        |  
+        |  delete_bucket(Bucket) -&gt;
+<font color=red>     0..|  	case get(?buckets) of</font>
+        |  		undefeind -&gt;
+<font color=red>     0..|  			ok;</font>
+        |  		Buckets -&gt;
+<font color=red>     0..|  			put(?buckets, (Buckets -- [Bucket]))</font>
+        |  	end.
+        |  
+        |  local_dict(Bucket) -&gt;
+     2..|  	case get(Bucket) of
+        |  		?undefined -&gt;
+     1..|  			put(Bucket, Dict = dict:new()),
+     1..|  			add_bucket(Bucket),
+     1..|  			Dict;
+        |  		Dict -&gt;
+     1..|  			Dict
+        |  	end.
+        |  
+        |  to_data(Value, Props) -&gt;
+     1..|  	Now = ssam_util:now_sec(),
+     1..|  	#data{value = Value,
+        |  		  ttl = ssam_objects:value(ttl, Props, ?DATA_TIMEOUT_SECS),
+        |  		  touched = Now,
+        |  		  created = Now}.
+        |  
+        |  is_expired(#data{ttl = TTL, touched = Touched}) -&gt;
+     1..|  	ssam_util:is_expired(Touched, TTL).
+        |  
+        |  default_props() -&gt;
+<font color=red>     0..|  	[{ttl, ?DATA_TIMEOUT_SECS}].</font>
+        |  
+        |  %% Tests
+        |  %%
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  setup_test_() -&gt;
+     1..|  	{setup,
+     1..|  		fun() -&gt; ok end,		%% init 
+     1..|  		fun(_X) -&gt; ok end,	%% cleanup
+     1..|  		fun(_X) -&gt; [		%% tests
+        |  			tests(_X)
+        |  		] end
+        |  	}.
+        |  
+        |  tests(_X) -&gt;
+     1..|  	[
+        |  		{"whatever",
+        |  			fun() -&gt;
+     1..|  				undef
+        |  			end
+        |  		}
+        |  	].
+        |  
+        |  -endif.
+</pre>
+</body>
+</html>

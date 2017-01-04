@@ -1,0 +1,22 @@
+%% -*- erlang -*-
+{application, ssam,
+ [
+  {description, ""},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+				  inets,
+				  ibrowse,
+				  cowboy,
+                  riak_core,
+				  lager,
+				  erlsom,
+				  gen_smtp,
+				  erlydtl,
+				  emysql
+                 ]},
+  {mod, {ssam_app, []}},
+  {env, []}
+ ]}.

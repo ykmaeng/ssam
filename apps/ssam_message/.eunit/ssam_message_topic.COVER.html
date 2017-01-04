@@ -1,0 +1,216 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message_topic.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message_topic.erl by COVER 2014-10-08 at 11:23:44
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_message_topic).
+        |  
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_message.hrl").
+        |  
+        |  %% Types
+        |  -type response_type() :: plain | xml | json. %% | yaml
+        |  
+        |  -type key() :: binary(). 
+        |  -type cursor() :: orddict:orddict(). 
+        |  -type command() :: subscribe | unsubscribe | publish.
+        |  -type transport() :: rest | eventsource | websocket | mqtt | ws_mqtt.
+        |  -type action() :: get | post | put | patch | delete.
+        |  -type role() :: primary | fallback.
+        |  -type node() :: atom().
+        |  -type primary() :: node().
+        |  -type fallbacks() :: list(node()).
+        |  -type path() :: tuple(primary(), fallbacks()).
+        |  
+        |  
+        |  
+        |  
+        |  -type request_props() :: request_subscribe() |
+        |  						 request_unsubscribe() |
+        |  						 request_publish().
+        |  
+        |  -type request_subscribe() :: subscribe_pid() |
+        |  							 subscribe_webhook() |
+        |  							 subscribe_email() |
+        |  							 subscribe_sms() |
+        |  							 subscribe_mms().
+        |  
+        |  -type subscribe_type() :: pid | webhook | email | sms | mms.
+        |  -type subscribe_id() :: binary().
+        |  
+        |  -type subscribe_pid() :: list(tuple(atom(), term())) |
+        |  						 list(tuple(type, poll) |
+        |  							  tuple(from, pid()) |
+        |  							  tuple(cursor, ?undefined | binary()) |
+        |  							  tuple(last_seq, 0 | pos_integer()) |
+        |  							  tuple(count, 0 | pos_integer())).
+        |  
+        |  -type subscribe_webhook() :: list(tuple(atom(), term())) |
+        |  							 list(tuple(type, webhook) |
+        |  								  tuple(subscriber_id, binary()) |
+        |  								  tuple(callback_url, binary()) |
+        |  								  tuple(content_type, binary()) |
+        |  								  tuple(secret, binary())).
+        |  
+        |  -type subscribe_email() :: list(tuple(atom(), term())).
+        |  -type subscribe_sms() :: list(tuple(atom(), term())).
+        |  -type subscribe_mms() :: list(tuple(atom(), term())).
+        |  							 
+        |  
+        |  -type request_unsubscribe() :: ?undefined.
+        |  
+        |  -type request_publish() :: publish_rest() |
+        |  						   publish_eventsource() |
+        |  						   publish_websocket() |
+        |  						   publish_mqtt() |
+        |  						   publish_ws_mqtt().
+        |  
+        |  -type publish_rest() :: list(tuple(atom(), term())) |
+        |  						list(tuple(id, pid()) |
+        |  							 tuple(body, ?undefined | binary()) |
+        |  							 tuple(seq, 0 | pos_integer())).
+        |  
+        |  -type publish_eventsource() :: ?undefined.
+        |  -type publish_websocket() :: ?undefined.
+        |  -type publish_mqtt() :: ?undefined.
+        |  -type publish_ws_mqtt() :: ?undefined.
+        |  
+        |  
+        |  -export_type([
+        |  			  key/0,
+        |  			  command/0,
+        |  			  cursor/0,
+        |  			  transport/0,
+        |  			  action/0,
+        |  			  role/0,
+        |  			  path/0,
+        |  			  request_props/0,
+        |  			  response_type/0,
+        |  			  subscribe_type/0,
+        |  			  subscribe_id/0
+        |  			 ]).
+        |  
+        |  %% Public
+        |  -export([
+        |  		 topic/1, topic/2,
+        |  		 new/2, new/3,
+        |  		 store/1,
+        |  		 parts/1,
+        |  		 new_path/1,
+        |  		 new_primary/1,
+        |  		 new_fallbacks/2,
+        |  		 keyenc/2,
+        |  		 keydec/1
+        |  		]).
+        |  
+        |  
+        |  topic(Sid, TopicId) -&gt;
+<font color=red>     0..|  	topic(keyenc(Sid, TopicId)).</font>
+        |  
+        |  topic(TopicKey) -&gt;
+<font color=red>     0..|  	case ssam_data:value(?SERVICE, TopicKey) of</font>
+        |  		?undefined -&gt;
+<font color=red>     0..|  			?undefined;</font>
+        |  		Topic when is_binary(Topic) -&gt;
+<font color=red>     0..|  			binary_to_term(Topic)</font>
+        |  	end.
+        |  
+        |  new(Sid, TopicId) -&gt;
+<font color=red>     0..|  	new(Sid, TopicId, default_props()).</font>
+        |  
+        |  new(Sid, TopicId, Props) -&gt;
+<font color=red>     0..|  	Key = keyenc(Sid, TopicId),</font>
+<font color=red>     0..|  	#topic{</font>
+        |  	   key = Key,
+        |  	   parts = parts(TopicId),
+        |  	   path = new_path(Key),
+        |  	   fallback_cnt = ?TOPIC_FALLBACK_CNT,
+        |  	   props = Props
+        |  	}.
+        |  
+        |  store(#topic{key = Key} = Topic) -&gt;
+<font color=red>     0..|  	Bin = term_to_binary(Topic),</font>
+<font color=red>     0..|  	ok = ssam_data:put(?SERVICE, Key, Bin).</font>
+        |  
+        |  
+        |  new_path(TopicKey) -&gt;
+<font color=red>     0..|  	Primary = new_primary(TopicKey),</font>
+<font color=red>     0..|  	Fallbacks = new_fallbacks(Primary, ?TOPIC_FALLBACK_NODE_CNT),</font>
+<font color=red>     0..|  	lager:debug("~p:new_node -&gt; Primary: ~p, Fallbacks: ~p",</font>
+        |  				[?MODULE, Primary, Fallbacks]),
+<font color=red>     0..|  	{Primary, Fallbacks}.</font>
+        |  
+        |  new_primary(TopicKey) -&gt;
+<font color=red>     0..|  	DocIdx = riak_core_util:chash_key({?SERVICE, TopicKey}),</font>
+<font color=red>     0..|  	case riak_core_apl:get_primary_apl(DocIdx, 1, ?RIAK_CORE_RING_NAME) of</font>
+<font color=red>     0..|  		[] -&gt; node();</font>
+<font color=red>     0..|  		[{{_, Node}, primary}] -&gt; Node</font>
+        |  	end.
+        |  
+        |  new_fallbacks(Primary, Cnt) -&gt;
+<font color=red>     0..|  	UpNodes = ssam_vnode:up_nodes(),</font>
+<font color=red>     0..|  	_Fallbacks = ssam_vnode:idle_nodes([Primary], UpNodes, Cnt).</font>
+        |  
+        |  keyenc(AccountSid, TopicParts) -&gt;
+<font color=red>     0..|  	term_to_binary({AccountSid, TopicParts}).</font>
+        |  
+        |  keydec(TopicKey) -&gt;
+<font color=red>     0..|  	binary_to_term(TopicKey).</font>
+        |  
+        |  parts(TopicId) -&gt;
+<font color=red>     0..|  	binary:split(TopicId, [&lt;&lt;$:&gt;&gt;, &lt;&lt;$/&gt;&gt;], [global]).</font>
+        |  
+        |  default_props() -&gt;
+<font color=red>     0..|  	[].</font>
+        |  
+        |  
+        |  %% Tests
+        |  %%
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  setup_test_() -&gt;
+     1..|  	{setup,
+     1..|  		fun() -&gt; ok end,	%% init
+     1..|  		fun(_X) -&gt; ok end,	%% cleanup
+     1..|  		fun(_X) -&gt; [		%% tests
+        |  			tests()
+        |  		] end
+        |  	}.
+        |  
+        |  tests() -&gt;
+     1..|  	[
+        |  		{"test",
+        |  		 fun() -&gt;
+     1..|  			ok
+        |  		 end
+        |  		}
+        |  	].
+        |  
+        |  -endif.
+</pre>
+</body>
+</html>

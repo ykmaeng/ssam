@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_sup.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_sup.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_sup).
+        |  
+        |  -behaviour(supervisor).
+        |  
+        |  %% API
+        |  -export([start_link/0,
+        |  		 add_child/1]).
+        |  
+        |  %% Supervisor callbacks
+        |  -export([init/1]).
+        |  
+        |  %% Helper macro for declaring children of supervisor
+        |  -define(CHILD(I, Type, Args), {I, {I, start_link, Args}, permanent, 5000, Type, [I]}).
+        |  
+        |  
+        |  %% ===================================================================
+        |  %% API functions
+        |  %% ===================================================================
+        |  
+        |  start_link() -&gt;
+<font color=red>     0..|      supervisor:start_link({local, ?MODULE}, ?MODULE, []).</font>
+        |  
+        |  add_child(Spec) -&gt;
+<font color=red>     0..|  	supervisor:start_child({?MODULE, node()}, Spec).</font>
+        |  
+        |  %% ===================================================================
+        |  %% Supervisor callbacks
+        |  %% ===================================================================
+        |  
+        |  init(_Args) -&gt;
+<font color=red>     0..|  	Childs = [</font>
+        |  		{ssam_vnode_master,
+        |  			{riak_core_vnode_master, start_link, [ssam_vnode]},
+        |  			permanent, 5000, worker, [riak_core_vnode_master]
+        |  		},
+        |  		?CHILD(ssam_riakc, worker, []),
+        |  		?CHILD(ssam_cache, worker, [])
+        |  	],
+        |  
+<font color=red>     0..|      {ok, {{one_for_one, 5, 10}, Childs}}.</font>
+</pre>
+</body>
+</html>

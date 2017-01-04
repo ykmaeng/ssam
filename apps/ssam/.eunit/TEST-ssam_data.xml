@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite tests="1" failures="0" errors="0" skipped="0" time="0.883" name="module 'ssam_data'">
+  <testcase time="0.880" name="ssam_data:tests/1_0" description="test"/>
+</testsuite>

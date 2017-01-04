@@ -1,0 +1,564 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_telephony_fs.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_telephony/.eunit/ssam_telephony_fs.erl by COVER 2014-10-07 at 16:20:12
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_telephony_fs).
+        |  
+        |  -behaviour(gen_server).
+        |  
+        |  -export([
+        |  		start_link/0,
+        |  		bind/1,
+        |  		subscribe_events/1,
+        |  		register_event_handler/0,
+        |  		bgapi/2,
+        |  		call/2, call/3, call/5
+        |  	]).
+        |  
+        |  %% gen_server callbacks
+        |  -export([init/1,
+        |           handle_call/3,
+        |           handle_cast/2,
+        |           handle_info/2,
+        |           terminate/2,
+        |           code_change/3]).
+        |  
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_telephony.hrl").
+        |  
+        |  -define(XML_DOCTYPE, &lt;&lt;"freeswitch/xml"&gt;&gt;).
+        |  -define(XML_PROLOG, "&lt;?xml version=\"1.0\" encoding=\"UTF-8\"?&gt;").
+        |  
+        |  -record(state, {
+        |  		  node_fs :: ?undefined | atom(),
+        |  		  node_erlang :: ?undefined | binary()
+        |  		 }).
+        |  
+        |  %% API
+        |  start_link() -&gt;
+<font color=red>     0..|  	lager:debug("~p:start_link -&gt; called", [?MODULE]),</font>
+<font color=red>     0..|      gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).</font>
+        |  
+        |  bind(Type) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {bind, Type}).</font>
+        |  
+        |  register_event_handler() -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {register_event_handler}).</font>
+        |  
+        |  subscribe_events(Events) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {event, Events}).</font>
+        |  
+        |  bgapi(Command, Args) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {bgapi, Command, Args}).</font>
+        |  
+<font color=red>     0..|  call(Url, AppId) -&gt; call(Url, AppId, []).</font>
+        |  call(Url, AppId, Options) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {call, Url, AppId, Options}).</font>
+        |  
+        |  call(From, To, App, Vars, Request) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {call, From, To, App, Vars, Request}).</font>
+        |  
+        |  
+        |  
+        |  %% Callback functions
+        |  init([]) -&gt;
+<font color=red>     0..|  	lager:debug("~p:init -&gt; called", [?MODULE]),</font>
+        |  	%process_flag(trap_exit, true),
+<font color=red>     0..|  	CheckFs = fun(NodeName) -&gt;</font>
+<font color=red>     0..|  		spawn_link(</font>
+<font color=red>     0..|  		  fun() -&gt; timer:sleep(1000), check_freeswitch(NodeName) end</font>
+<font color=red>     0..|  		), ok</font>
+        |  	end,
+<font color=red>     0..|  	NodeFs = ssam_conf:value(?SERVICE, [freeswitch, node_fs]),</font>
+<font color=red>     0..|  	NodeErlang = ssam_conf:value(?SERVICE, [freeswitch, node_erlang]),</font>
+<font color=red>     0..|  	State = #state{node_fs = list_to_atom(NodeFs),</font>
+        |  				   node_erlang = list_to_binary(NodeErlang)},
+<font color=red>     0..|  	Result = CheckFs(NodeFs),</font>
+<font color=red>     0..|  	{Result, State}.</font>
+        |  
+        |  check_freeswitch(Node) when is_list(Node) -&gt;
+<font color=red>     0..|  	check_freeswitch(list_to_atom(Node));</font>
+        |  check_freeswitch(Node) when is_atom(Node) -&gt;
+<font color=red>     0..|  	lager:debug("~p:check_freeswitch -&gt; Node: ~p", [?MODULE, Node]),</font>
+<font color=red>     0..|  	case net_adm:ping(Node) of</font>
+        |  		pong -&gt;
+<font color=red>     0..|  			connect();</font>
+        |  		Else -&gt;
+<font color=red>     0..|  			io:format("~n~nElse: ~p~n~n", [Else]),</font>
+<font color=red>     0..|  			timer:sleep(2*1000),</font>
+<font color=red>     0..|  			check_freeswitch(Node)</font>
+        |  	end.
+        |  
+        |  connect() -&gt;
+<font color=red>     0..|  	lager:debug("~p:connect -&gt; called", [?MODULE]),</font>
+        |  	%bind(configuration),
+<font color=red>     0..|  	bind(directory),</font>
+<font color=red>     0..|  	bind(dialplan),</font>
+<font color=red>     0..|  	subscribe_events([</font>
+        |  					  'CHANNEL_CALLSTATE'
+        |  					 ]),
+<font color=red>     0..|  	register_event_handler().</font>
+        |  
+        |  
+        |  handle_call({bind, Type}, _From, State) -&gt;
+<font color=red>     0..|  	Node = State#state.node_fs,</font>
+<font color=red>     0..|  	lager:debug("~p:handler_call({bind, ~p}) -&gt; Node: ~p", [?MODULE, Type, Node]),</font>
+<font color=red>     0..|  	{fs, Node} ! {bind, Type},</font>
+<font color=red>     0..|      {reply, ok, State};</font>
+        |  handle_call({event, Events}, _From, State) -&gt;
+<font color=red>     0..|  	Node = State#state.node_fs,</font>
+<font color=red>     0..|  	lager:debug("~p:handler_call({event, ~p}) -&gt; Node: ~p", [?MODULE, Events, Node]),</font>
+<font color=red>     0..|  	{fs, Node} ! list_to_tuple([event] ++ Events),</font>
+<font color=red>     0..|      {reply, ok, State};</font>
+        |  handle_call({register_event_handler}, _From, State) -&gt;
+<font color=red>     0..|  	Node = State#state.node_fs,</font>
+<font color=red>     0..|  	lager:debug("~p:handler_call({register_event_handler}) -&gt; Node: ~p", [?MODULE, Node]),</font>
+<font color=red>     0..|  	{fs, Node} ! register_event_handler,</font>
+<font color=red>     0..|      {reply, ok, State};</font>
+        |  handle_call({bgapi, Command, Args}, _From, State) -&gt;
+<font color=red>     0..|  	Node = State#state.node_fs,</font>
+<font color=red>     0..|  	Result = freeswitch:bgapi(Node, Command, Args),</font>
+<font color=red>     0..|  	lager:debug("~p:handle_call -&gt; bgapi, Result: ~p", [?MODULE, Result]),</font>
+<font color=red>     0..|      {reply, ok, State};</font>
+        |  
+        |  handle_call({call, From, To, {xml, App}, Vars, Request}, _From, State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:handler_call -&gt; call, ~p, ~p, ~p, ~p",</font>
+        |  				[?MODULE, From, To, App, Vars]),
+<font color=red>     0..|  	#request{account_sid = Sid, id = ReqId, body = Params} = Request,</font>
+<font color=red>     0..|  	AppId = proplists:get_value(&lt;&lt;"app_id"&gt;&gt;, Params),</font>
+<font color=red>     0..|  	App1 = re:replace(App, &lt;&lt;"[$\t]"&gt;&gt;, &lt;&lt;&gt;&gt;, [global, unicode, {return, binary}]),</font>
+<font color=red>     0..|  	ok = ssam_riakc:put(&lt;&lt;?SERVICE/bits, "_calls"&gt;&gt;,</font>
+        |  					   &lt;&lt;Sid/bits, ?DELIMITER, ReqId/bits&gt;&gt;,
+        |  					   [{id, AppId}, {app, App1}, {vars, Vars}]),
+        |  
+<font color=red>     0..|  	Node = State#state.node_fs,</font>
+<font color=red>     0..|  	Var = case length(Params) &gt; 0 of</font>
+        |  		true -&gt;	
+<font color=red>     0..|  			 case &lt;&lt; &lt;&lt;$,, X/bits, $=, Y/bits&gt;&gt; || {X, Y} &lt;- Params &gt;&gt; of</font>
+<font color=red>     0..|  				 &lt;&lt;&gt;&gt; -&gt; &lt;&lt;&gt;&gt;;</font>
+<font color=red>     0..|  				 &lt;&lt;_:8, V/bits&gt;&gt; -&gt; &lt;&lt;${, V/bits, $}&gt;&gt;</font>
+        |  			 end;
+        |  		false -&gt;
+<font color=red>     0..|  			&lt;&lt;&gt;&gt;</font>
+        |  	end,
+<font color=red>     0..|  	Arg = &lt;&lt;Var/bits, To/bits, $\s, AppId/bits&gt;&gt;,</font>
+<font color=red>     0..|  	Res = {fs, Node} ! {bgapi, originate, Arg},</font>
+<font color=red>     0..|  	lager:debug("~p:handle_call -&gt; originate, ~p", [?MODULE, Res]),</font>
+<font color=red>     0..|      {reply, ok, State};</font>
+        |  
+        |  handle_call({call, From, To, {url, URL}, Vars, Request}, _From, State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:handler_call -&gt; call, ~p, ~p, ~p, ~p",</font>
+        |  				[?MODULE, From, To, URL, Vars]),
+<font color=red>     0..|  	#request{account_sid = Sid, id = ReqId, body = Params} = Request,</font>
+<font color=red>     0..|  	AppId = proplists:get_value(&lt;&lt;"app_id"&gt;&gt;, Params),</font>
+<font color=red>     0..|  	App =</font>
+        |  		case ssam_httpc:request(get, URL) of
+<font color=red>     0..|  			{ok, _StatusCode, _ResHeaders, ResBody} -&gt; ResBody;</font>
+<font color=red>     0..|  			_ -&gt; &lt;&lt;&gt;&gt;</font>
+        |  		end,
+<font color=red>     0..|  	App1 = re:replace(App, &lt;&lt;"[$\t]"&gt;&gt;, &lt;&lt;&gt;&gt;, [global, unicode, {return, binary}]),</font>
+<font color=red>     0..|  	ok = ssam_riakc:put(&lt;&lt;?SERVICE/bits, "_calls"&gt;&gt;,</font>
+        |  					   &lt;&lt;Sid/bits, ?DELIMITER, ReqId/bits&gt;&gt;,
+        |  					   [{id, AppId}, {app, App1}, {vars, Vars}]),
+        |  
+<font color=red>     0..|  	Node = State#state.node_fs,</font>
+<font color=red>     0..|  	Var = case length(Params) &gt; 0 of</font>
+        |  		true -&gt;	
+<font color=red>     0..|  			 case &lt;&lt; &lt;&lt;$,, X/bits, $=, Y/bits&gt;&gt; || {X, Y} &lt;- Params &gt;&gt; of</font>
+<font color=red>     0..|  				 &lt;&lt;&gt;&gt; -&gt; &lt;&lt;&gt;&gt;;</font>
+<font color=red>     0..|  				 &lt;&lt;_:8, V/bits&gt;&gt; -&gt; &lt;&lt;${, V/bits, $}&gt;&gt;</font>
+        |  			 end;
+        |  		false -&gt;
+<font color=red>     0..|  			&lt;&lt;&gt;&gt;</font>
+        |  	end,
+<font color=red>     0..|  	Arg = &lt;&lt;Var/bits, To/bits, $\s, AppId/bits&gt;&gt;,</font>
+<font color=red>     0..|  	Res = {fs, Node} ! {bgapi, originate, Arg},</font>
+<font color=red>     0..|  	lager:debug("~p:handle_call -&gt; originate, ~p", [?MODULE, Res]),</font>
+<font color=red>     0..|      {reply, ok, State};</font>
+        |  
+        |  handle_call({call, From, To, {app, App}, Vars, Request}, _From, State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:handler_call -&gt; call, ~p, ~p, ~p, ~p",</font>
+        |  				[?MODULE, From, To, App, Vars]),
+<font color=red>     0..|  	#request{account_sid = Sid, id = ReqId, body = Params} = Request,</font>
+<font color=red>     0..|  	Node = State#state.node_fs,</font>
+<font color=red>     0..|  	Var = case length(Params) &gt; 0 of</font>
+        |  		true -&gt;	
+<font color=red>     0..|  			 case &lt;&lt; &lt;&lt;$,, X/bits, $=, Y/bits&gt;&gt; || {X, Y} &lt;- Params &gt;&gt; of</font>
+<font color=red>     0..|  				 &lt;&lt;&gt;&gt; -&gt; &lt;&lt;&gt;&gt;;</font>
+<font color=red>     0..|  				 &lt;&lt;_:8, V/bits&gt;&gt; -&gt; &lt;&lt;${, V/bits, $}&gt;&gt;</font>
+        |  			 end;
+        |  		false -&gt;
+<font color=red>     0..|  			&lt;&lt;&gt;&gt;</font>
+        |  	end,
+<font color=red>     0..|  	Arg = &lt;&lt;Var/bits, To/bits, $\s, $&amp;, App/bits&gt;&gt;,</font>
+<font color=red>     0..|  	Res = {fs, Node} ! {bgapi, originate, Arg},</font>
+<font color=red>     0..|  	lager:debug("~p:handle_call -&gt; originate, ~p", [?MODULE, Res]),</font>
+<font color=red>     0..|      {reply, ok, State};</font>
+        |  
+        |  
+        |  
+        |  handle_call({call, Url, AppId, Options}, _From, State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:handler_call -&gt; call, ~p, ~p, ~p", [?MODULE, Url, AppId, Options]),</font>
+<font color=red>     0..|  	Node = State#state.node_fs,</font>
+<font color=red>     0..|  	Var = case length(Options) &gt; 0 of</font>
+        |  		true -&gt;	
+<font color=red>     0..|  			 case &lt;&lt; &lt;&lt;$,, X/bits, $=, Y/bits&gt;&gt; || {X, Y} &lt;- Options &gt;&gt; of</font>
+<font color=red>     0..|  				 &lt;&lt;&gt;&gt; -&gt; &lt;&lt;&gt;&gt;;</font>
+<font color=red>     0..|  				 &lt;&lt;_:8, V/bits&gt;&gt; -&gt; &lt;&lt;${, V/bits, $}&gt;&gt;</font>
+        |  			 end;
+        |  		false -&gt;
+<font color=red>     0..|  			&lt;&lt;&gt;&gt;</font>
+        |  	end,
+<font color=red>     0..|  	Arg = &lt;&lt;Var/bits, Url/bits, $\s, AppId/bits&gt;&gt;,</font>
+<font color=red>     0..|  	Res = {fs, Node} ! {bgapi, originate, Arg},</font>
+<font color=red>     0..|  	lager:debug("~p:handle_call -&gt; originate, ~p", [?MODULE, Res]),</font>
+<font color=red>     0..|      {reply, ok, State};</font>
+        |  handle_call(_Request, _From, State) -&gt;
+<font color=red>     0..|      {reply, ignored, State}.</font>
+        |  
+        |  handle_cast(_Msg, State) -&gt;
+<font color=red>     0..|      {noreply, State}.</font>
+        |  
+        |  handle_event({&lt;&lt;"Event-Name"&gt;&gt;, &lt;&lt;"CHANNEL_BRIDGE"&gt;&gt; = Event},
+        |  			 UniqueId, Params, _State) -&gt;
+<font color=red>     0..|  	lager:debug("~p:handle_event(~p) -&gt; UniqueId: ~p, Params: ~p",</font>
+        |  				[?MODULE, Event, UniqueId, Params]),
+        |  	%FromHost = proplists:get_value(&lt;&lt;"variable_sip_from_host"&gt;&gt;, Params, &lt;&lt;&gt;&gt;),
+        |  	%FromUser = proplists:get_value(&lt;&lt;"variable_sip_from_user"&gt;&gt;, Params, &lt;&lt;&gt;&gt;),
+        |  	%AccountSid = get_account_sid(FromHost),
+<font color=red>     0..|  	ok;</font>
+        |  handle_event({&lt;&lt;"Event-Name"&gt;&gt;, &lt;&lt;"CHANNEL_UNBRIDGE"&gt;&gt; = Event},
+        |  			 UniqueId, Params, _State) -&gt;
+<font color=red>     0..|  	io:format("~p:handle_event(~p) -&gt; UniqueId: ~p~n", [?MODULE, Event, UniqueId]),</font>
+<font color=red>     0..|  	ok;</font>
+        |  handle_event(Event, UniqueId, Params, _State) -&gt;
+<font color=red>     0..|  	io:format("~p:handle_event(~p) -&gt; UniqueId: ~p~n", [?MODULE, Event, UniqueId]),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  %% Messages for FreeSwitch EVENT "CHANNEL_BRIDGE"
+        |  handle_info({event, [UniqueId, Event | Params]}, State) -&gt;
+<font color=red>     0..|  	handle_event(Event, UniqueId, Params, State),</font>
+<font color=red>     0..|      {noreply, State};</font>
+        |  
+        |  %% Messages for FreeSwitch FETCH "DIRECTORY"
+        |  handle_info({fetch, directory, Tag, Key, Value, FetchId, Params}, State) -&gt;
+        |  	%io:format("~p:handle_info({fetch, directory, ~p, ~p, ~p, ~p}) ~p~n~p~n",
+        |  			  %[?MODULE, Tag, Key, Value, FetchId, self(), Params]),
+<font color=red>     0..|  	Node = State#state.node_fs,</font>
+<font color=red>     0..|  	Purpose = proplists:get_value(&lt;&lt;"purpose"&gt;&gt;, Params, &lt;&lt;&gt;&gt;),</font>
+<font color=red>     0..|  	Action = proplists:get_value(&lt;&lt;"action"&gt;&gt;, Params, &lt;&lt;&gt;&gt;),</font>
+<font color=red>     0..|  	case fetch_directory({Purpose, Action, Params}, State) of</font>
+        |  		{ok, Xml, State1} -&gt;
+<font color=red>     0..|  			{fs, Node} ! {fetch_reply, FetchId, Xml},</font>
+<font color=red>     0..|  			{noreply, State1};</font>
+        |  		{error, Msg, State1} -&gt;
+<font color=red>     0..|  			lager:error("~p:handle_info -&gt; error, Msg: ~p", [?MODULE, Msg]),</font>
+<font color=red>     0..|  			{noreply, State1}</font>
+        |  	end;
+        |  
+        |  %% Messages for FreeSwitch FETCH "DIALPLAN"
+        |  handle_info({fetch, dialplan, _Tag, _Key, _Value, FetchId, Params}, State) -&gt;
+        |  	%io:format("~p:handle_info({fetch, dialplan, ~p}) ~p~n~p~n",
+        |  			  %[?MODULE, FetchId, self(), Params]),
+<font color=red>     0..|  	Node = State#state.node_fs,</font>
+<font color=red>     0..|  	CallDirection = proplists:get_value(&lt;&lt;"Call-Direction"&gt;&gt;, Params),</font>
+<font color=red>     0..|  	CallState = proplists:get_value(&lt;&lt;"Channel-Call-State"&gt;&gt;, Params),</font>
+<font color=red>     0..|  	case fetch_dialplan({CallDirection, CallState, Params}, State) of</font>
+        |  		{ok, Xml, State1} -&gt;
+<font color=red>     0..|  			{fs, Node} ! {fetch_reply, FetchId, Xml},</font>
+<font color=red>     0..|  			{noreply, State1};</font>
+        |  		{error, Msg, State1} -&gt;
+<font color=red>     0..|  			lager:error("~p:handle_info -&gt; error, Msg: ~p", [?MODULE, Msg]),</font>
+<font color=red>     0..|  			{noreply, State1}</font>
+        |  	end;
+        |  
+        |  handle_info({'EXIT', _Pid, Reason}, State) -&gt;
+<font color=red>     0..|  	error_logger:info_msg("freeswitch ~p: 'EXIT' by ~p~n",[self(), Reason]),</font>
+        |  	%check_freeswitch(State#state.node_fs),
+<font color=red>     0..|      {noreply, State};</font>
+        |  handle_info(Info, State) -&gt;
+<font color=red>     0..|  	error_logger:info_msg("freeswitch ~p: ~p~n",[self(), Info]),</font>
+<font color=red>     0..|      {noreply, State}.</font>
+        |  
+        |  terminate(Reason, _State) -&gt;
+<font color=red>     0..|  	error_logger:info_msg("freeswitch ~p: terminate! ~p~n",[self(), Reason]),</font>
+<font color=red>     0..|      ok.</font>
+        |  
+        |  code_change(_OldVsn, State, _Extra) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  %% Internal functions 
+        |  
+        |  
+        |  fetch_directory({&lt;&lt;&gt;&gt;, &lt;&lt;"sip_auth"&gt;&gt;, Params}, State) -&gt;
+<font color=red>     0..|  	{ok, Xml} = state_fetch_directory(authentication, Params),</font>
+<font color=red>     0..|  	{ok, Xml, State};	</font>
+        |  fetch_directory({&lt;&lt;&gt;&gt;, &lt;&lt;"message-count"&gt;&gt;, Params}, State) -&gt;
+<font color=red>     0..|  	{ok, Xml} = state_fetch_directory(authentication, Params),</font>
+<font color=red>     0..|  	{ok, Xml, State};	</font>
+        |  fetch_directory({&lt;&lt;&gt;&gt;, &lt;&lt;"user_call"&gt;&gt;, Params}, State) -&gt;
+<font color=red>     0..|  	{ok, Xml} = state_fetch_directory(authentication, Params),</font>
+<font color=red>     0..|  	{ok, Xml, State};</font>
+        |  
+        |  fetch_directory({&lt;&lt;"gateways"&gt;&gt;, &lt;&lt;&gt;&gt;, Params}, State) -&gt;
+<font color=red>     0..|  	Profile = proplists:get_value(&lt;&lt;"profile"&gt;&gt;, Params, &lt;&lt;&gt;&gt;),</font>
+<font color=red>     0..|  	lager:debug("~p:fetch_directory -&gt; gateways, ~p", [?MODULE, Profile]),</font>
+<font color=red>     0..|  	{ok, xml_not_found(), State};</font>
+        |  fetch_directory({&lt;&lt;"network-list"&gt;&gt;, [], _Params}, State) -&gt;
+<font color=red>     0..|  	{ok, xml_not_found(), State}.</font>
+        |  
+        |  fetch_dialplan({&lt;&lt;"inbound"&gt;&gt;, &lt;&lt;"RINGING"&gt;&gt;, Params}, State) -&gt;
+<font color=red>     0..|  	{ok, Xml} = state_fetch_dialplan(inbound_ringing, Params),</font>
+<font color=red>     0..|  	{ok, Xml, State};</font>
+        |  fetch_dialplan({&lt;&lt;"outbound"&gt;&gt;, &lt;&lt;"EARLY"&gt;&gt;, Params}, State) -&gt;
+<font color=red>     0..|  	{ok, Xml} = state_fetch_dialplan(outbound_active, {Params, State#state.node_erlang}),</font>
+<font color=red>     0..|  	{ok, Xml, State};</font>
+        |  fetch_dialplan({&lt;&lt;"outbound"&gt;&gt;, &lt;&lt;"ACTIVE"&gt;&gt;, Params}, State) -&gt;
+<font color=red>     0..|  	{ok, Xml} = state_fetch_dialplan(outbound_active, {Params, State#state.node_erlang}),</font>
+<font color=red>     0..|  	{ok, Xml, State}.</font>
+        |  
+        |  state_fetch_dialplan(inbound_ringing, Params) -&gt;
+<font color=red>     0..|  	Context = proplists:get_value(&lt;&lt;"Caller-Context"&gt;&gt;, Params),</font>
+<font color=red>     0..|  	Dnis = proplists:get_value(&lt;&lt;"Caller-Destination-Number"&gt;&gt;, Params),</font>
+<font color=red>     0..|  	_Ani = proplists:get_value(&lt;&lt;"Caller-ANI"&gt;&gt;, Params),</font>
+<font color=red>     0..|  	Domain = proplists:get_value(&lt;&lt;"variable_domain_name"&gt;&gt;, Params),</font>
+<font color=red>     0..|  	_Xml1 = {document, [{type, ?XML_DOCTYPE}],</font>
+        |  		   [{section, [{name, &lt;&lt;"dialplan"&gt;&gt;}],
+        |  			 [{context, [{name, Context}],
+        |  			   [{extension,
+        |  				 [{condition, [
+        |  					   %{action, [{application, &lt;&lt;"answer"&gt;&gt;}], []},
+        |  					   %{action, [{application, &lt;&lt;"park"&gt;&gt;}], []}]
+        |  					   %{action, [
+        |  								 %{application, &lt;&lt;"playback"&gt;&gt;},
+        |  								 %{data, &lt;&lt;"ivr/ivr-welcome_to_freeswitch.wav"&gt;&gt;}
+        |  								%], []},
+        |  					   {action, [{application, &lt;&lt;"bridge"&gt;&gt;},
+        |  								 {data, &lt;&lt;"user/", Dnis/bits, "@", Domain/bits&gt;&gt;}], []}
+        |  					  ]}] 
+        |  				}]
+        |  			  }]
+        |  			}]
+        |  		  },
+<font color=red>     0..|  	AccId = Domain,</font>
+<font color=red>     0..|  	AppId = Dnis,</font>
+<font color=red>     0..|  	URL = &lt;&lt;"http://localhost:3000/dialplan_", Dnis/bits, ".xml"&gt;&gt;,</font>
+<font color=red>     0..|  	App =</font>
+        |  		case ssam_httpc:request(get, URL) of
+<font color=red>     0..|  			{ok, _StatusCode, _ResHeaders, ResBody} -&gt; ResBody;</font>
+<font color=red>     0..|  			_ -&gt; &lt;&lt;&gt;&gt;</font>
+        |  		end,
+<font color=red>     0..|  	App1 = re:replace(App, &lt;&lt;"[$\t]"&gt;&gt;, &lt;&lt;&gt;&gt;, [global, unicode, {return, binary}]),</font>
+<font color=red>     0..|  	ok = ssam_riakc:put(&lt;&lt;?SERVICE/bits, "_calls"&gt;&gt;,</font>
+        |  					   &lt;&lt;AccId/bits, ?DELIMITER, AppId/bits&gt;&gt;,
+        |  					   [{id, AppId}, {app, App1}, {vars, []}]),
+<font color=red>     0..|  	Xml = {document, [{type, ?XML_DOCTYPE}],</font>
+        |  		   [{section, [{name, &lt;&lt;"dialplan"&gt;&gt;}],
+        |  			 [{context, [{name, Context}],
+        |  			   [{extension,
+        |  				 [{condition, [
+        |  					   {action, [{application, &lt;&lt;"set"&gt;&gt;}, {data, &lt;&lt;"acc_id=", AccId/bits&gt;&gt;}], []},
+        |  					   {action, [{application, &lt;&lt;"set"&gt;&gt;}, {data, &lt;&lt;"app_id=", AppId/bits&gt;&gt;}], []},
+        |  					   {action, [{application, &lt;&lt;"erlang"&gt;&gt;}, {data, &lt;&lt;"ssam_telephony_dialplan:launch ssam1@node1.tellet.io"&gt;&gt;}], []}
+        |  					  ]}] 
+        |  				}]
+        |  			  }]
+        |  			}]
+        |  		  },
+<font color=red>     0..|  	lager:debug("~p:state_fetch_dialplan() -&gt; ok, Xml: ~p", [?MODULE, Xml]),</font>
+<font color=red>     0..|  	Xml1 = xmerl:export_simple([Xml], xmerl_xml, [{prolog, ?XML_PROLOG}]),</font>
+<font color=red>     0..|  	Xml2 = unicode:characters_to_binary(Xml1),</font>
+<font color=red>     0..|  	{ok, Xml2};</font>
+        |  
+        |  state_fetch_dialplan(outbound_active, {Params, ErlangNode}) -&gt;
+<font color=red>     0..|  	Context = proplists:get_value(&lt;&lt;"Caller-Context"&gt;&gt;, Params),</font>
+<font color=red>     0..|  	Xml = {document, [{type, ?XML_DOCTYPE}],</font>
+        |  		   [{section, [{name, &lt;&lt;"dialplan"&gt;&gt;}],
+        |  			 [{context, [{name, Context}],
+        |  			   [{extension,
+        |  				 [{condition, [
+        |  					   {action, [{application, &lt;&lt;"erlang"&gt;&gt;},
+        |  								 {data, &lt;&lt;"ssam_telephony_dialplan:launch ",
+        |  										  ErlangNode/bits&gt;&gt;}], []}
+        |  					  ]}] 
+        |  				}]
+        |  			  }]
+        |  			}]
+        |  		  },
+<font color=red>     0..|  	lager:debug("~p:state_fetch_dialplan() -&gt; ok, Xml: ~p", [?MODULE, Xml]),</font>
+<font color=red>     0..|  	Xml1 = xmerl:export_simple([Xml], xmerl_xml, [{prolog, ?XML_PROLOG}]),</font>
+<font color=red>     0..|  	Xml2 = unicode:characters_to_binary(Xml1),</font>
+<font color=red>     0..|  	{ok, Xml2}.</font>
+        |  
+        |  state_fetch_directory(authentication, Params) -&gt;
+<font color=red>     0..|  	state_fetch_directory(get_domain, Params);</font>
+        |  state_fetch_directory(get_domain, Params) -&gt;
+<font color=red>     0..|  	DomainId = proplists:get_value(&lt;&lt;"domain"&gt;&gt;, Params, []),</font>
+<font color=red>     0..|  	UserId = proplists:get_value(&lt;&lt;"user"&gt;&gt;, Params, []),</font>
+<font color=red>     0..|  	case ssam_telephony:get_domain_user(DomainId, UserId) of</font>
+        |  		{ok, [], _} -&gt;
+<font color=red>     0..|  			state_fetch_directory(?error, {domain_not_found});</font>
+        |  		{ok, _, []} -&gt;
+<font color=red>     0..|  			state_fetch_directory(?error, {user_not_found});</font>
+        |  		{ok, Domain, User} -&gt;
+<font color=red>     0..|  			{DomainProps} = Domain,</font>
+<font color=red>     0..|  			Domain1 = {DomainProps ++ default_params(domain)},</font>
+<font color=red>     0..|  			state_fetch_directory(xml, {start, Domain1, DomainId, User, UserId});</font>
+        |  		{?error, {Reason, _, _}} -&gt;
+<font color=red>     0..|  			state_fetch_directory(?error, {Reason})</font>
+        |  	end;
+        |  state_fetch_directory(xml, {start, Domain, DomainId, User, UserId}) -&gt;
+<font color=red>     0..|  	try</font>
+<font color=red>     0..|  		{document, [{type, ?XML_DOCTYPE}],</font>
+        |  		 [{section, [{name, &lt;&lt;"directory"&gt;&gt;}],
+        |  		  [{domain, [{name, DomainId}],
+        |  			[
+        |  			 state_fetch_directory(xml, {domain_params, Domain}),
+        |  			 state_fetch_directory(xml, {domain_variables, Domain}),
+        |  			 state_fetch_directory(xml, {users, DomainId, UserId, User}),
+        |  			 state_fetch_directory(xml, {gateways, Domain})
+        |  			]
+        |  		   }]
+        |  		  }]
+        |  		}
+        |  	of
+<font color=red>     0..|  		Xml -&gt; state_fetch_directory(ok, {Xml})</font>
+        |  	catch
+        |  		Type:Except -&gt;
+<font color=red>     0..|  			lager:error("~p:state_fetch_directory(xml, ..) -&gt; ~p:~p",</font>
+        |  						[?MODULE, Type, Except]),
+<font color=red>     0..|  			state_fetch_directory(error, {xml_build_failed})</font>
+        |  	end;
+        |  state_fetch_directory(xml, {domain_params, Domain}) -&gt;
+<font color=red>     0..|  	{Props} = Domain,</font>
+<font color=red>     0..|  	Props1 = ssam_objects:list_deleted(</font>
+        |  			   [&lt;&lt;"id"&gt;&gt;, &lt;&lt;"account_sid"&gt;&gt;, &lt;&lt;"users"&gt;&gt;,
+        |  				&lt;&lt;"groups"&gt;&gt;, &lt;&lt;"gateways"&gt;&gt;],
+        |  			   Props),
+<font color=red>     0..|  	{params, [{param, [{name, K}, {value, V}], []}</font>
+<font color=red>     0..|  			  || {K, V} &lt;- Props1, not is_variable(K)]};</font>
+        |  state_fetch_directory(xml, {domain_variables, Domain}) -&gt;
+<font color=red>     0..|  	{Props} = Domain,</font>
+<font color=red>     0..|  	{variables,</font>
+        |  	 [begin
+<font color=red>     0..|  		  &lt;&lt;"variable_", Name/bits&gt;&gt; = K,</font>
+<font color=red>     0..|  		  {variable, [{name, Name}, {value, V}], []}</font>
+<font color=red>     0..|  	  end || {K, V} &lt;- Props, is_variable(K)]</font>
+        |  	};
+        |  state_fetch_directory(xml, {users, DomainName, UserId, User}) -&gt;
+<font color=red>     0..|  	{groups,</font>
+        |  	 [{group, [{name, DomainName}],
+        |  	   [{users,
+        |  		 [{user, [{id, UserId}],
+        |  		   [state_fetch_directory(xml, {user_params, User}),
+        |  			state_fetch_directory(xml, {user_variables, User})]
+        |  		  }]
+        |  		}]
+        |  	  }]
+        |  	};
+        |  state_fetch_directory(xml, {gateways, Domain}) -&gt;
+<font color=red>     0..|  	Gateways = ssam_objects:value(&lt;&lt;"gateways"&gt;&gt;, Domain),</font>
+<font color=red>     0..|  	{gateways,</font>
+<font color=red>     0..|  	 [{gateway, [{name, ssam_objects:value(&lt;&lt;"id"&gt;&gt;, GW)}],</font>
+        |  	   [state_fetch_directory(xml, {gateway_params, GW}),
+        |  		state_fetch_directory(xml, {gateway_variables, GW})]
+<font color=red>     0..|  	  } || GW &lt;- Gateways] </font>
+        |  	};
+        |  state_fetch_directory(xml, {user_params, User}) -&gt;
+<font color=red>     0..|  	{Props} = User,</font>
+<font color=red>     0..|  	Props1 = ssam_objects:deleted(&lt;&lt;"id"&gt;&gt;, Props),</font>
+<font color=red>     0..|  	{params, [{param, [{name, K}, {value, V}], []}</font>
+<font color=red>     0..|  			  || {K, V} &lt;- Props1, not is_variable(K)]};</font>
+        |  state_fetch_directory(xml, {user_variables, User}) -&gt;
+<font color=red>     0..|  	{Props} = User,</font>
+<font color=red>     0..|  	{variables,</font>
+        |  	 [begin
+<font color=red>     0..|  		  &lt;&lt;"variable_", Name/bits&gt;&gt; = K,</font>
+<font color=red>     0..|  		  {variable, [{name, Name}, {value, V}], []}</font>
+<font color=red>     0..|  	  end || {K, V} &lt;- Props, is_variable(K)]</font>
+        |  	};
+        |  state_fetch_directory(xml, {gateway_params, GW}) -&gt;
+<font color=red>     0..|  	{Props} = ssam_objects:deleted(&lt;&lt;"id"&gt;&gt;, GW),</font>
+<font color=red>     0..|  	{params, [{param, [{name, K}, {value, V}], []}</font>
+<font color=red>     0..|  			  || {K, V} &lt;- Props, not is_variable(K)]};</font>
+        |  state_fetch_directory(xml, {gateway_variables, GW}) -&gt;
+<font color=red>     0..|  	{Props} = GW,</font>
+<font color=red>     0..|  	{variables,</font>
+        |  	 [begin
+<font color=red>     0..|  		  &lt;&lt;"variable_", Name/bits&gt;&gt; = K,</font>
+<font color=red>     0..|  		  {variable, [{name, Name}, {value, V}], []}</font>
+<font color=red>     0..|  	  end || {K, V} &lt;- Props, is_variable(K)]</font>
+        |  	};
+        |  state_fetch_directory(ok, {Xml}) -&gt;
+<font color=red>     0..|  	lager:debug("~p:state_fetch_directory() -&gt; ok, Xml: ~p", [?MODULE, Xml]),</font>
+<font color=red>     0..|  	Xml1 = xmerl:export_simple([Xml], xmerl_xml, [{prolog, ?XML_PROLOG}]),</font>
+<font color=red>     0..|  	Xml2 = unicode:characters_to_binary(Xml1),</font>
+<font color=red>     0..|  	{ok, Xml2};</font>
+        |  state_fetch_directory(?error, {Msg}) -&gt;
+<font color=red>     0..|  	lager:error("~p:state_fetch_directory() -&gt; error, Msg: ~p", [?MODULE, Msg]),</font>
+<font color=red>     0..|  	{ok, xml_not_found()}.</font>
+        |  
+        |  
+        |  xml_not_found() -&gt;
+<font color=red>     0..|  	Xml = {document, [{type, &lt;&lt;"freeswitch/xml"&gt;&gt;}],</font>
+        |  		   [{section, [{name, &lt;&lt;"result"&gt;&gt;}],
+        |  			 [{result, [{status, &lt;&lt;"not found"&gt;&gt;}], []}]
+        |  			}]
+        |  		  },
+<font color=red>     0..|  	Xml1 = xmerl:export_simple([Xml], xmerl_xml, [{prolog, ?XML_PROLOG}]),</font>
+<font color=red>     0..|  	Xml2 = unicode:characters_to_binary(Xml1),</font>
+<font color=red>     0..|  	Xml2.</font>
+        |  
+        |  
+     1..|  is_variable(&lt;&lt;"variable_", _/bits&gt;&gt;) -&gt; true;
+     1..|  is_variable(_) -&gt; false.
+        |  	
+        |  default_params(domain) -&gt;
+<font color=red>     0..|  	[{&lt;&lt;"dial-string"&gt;&gt;, &lt;&lt;"{presence_id=${dialed_user}@${dialed_domain}}${sofia_contact(${dialed_user}@${dialed_domain})}"&gt;&gt;}].</font>
+        |  
+        |  
+        |  %% Tests
+        |  
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  is_variable_test() -&gt;
+     1..|  	?assert(is_variable(&lt;&lt;"variable_a"&gt;&gt;) =:= true),
+     1..|  	?assert(is_variable(&lt;&lt;"variable"&gt;&gt;) =:= false).
+        |  
+        |  
+        |  
+        |  
+        |  -endif.
+        |  
+        |  %{params, begin {P} = ssam_objects:value(&lt;&lt;"params"&gt;&gt;, DomainObj), P end},
+        |  %{variables, begin {V} = ssam_objects:value(&lt;&lt;"variables"&gt;&gt;, DomainObj), V end},
+        |  %{users, begin {P} = ssam_objects:value(&lt;&lt;"params"&gt;&gt;, DomainObj), P end}
+        |  
+</pre>
+</body>
+</html>

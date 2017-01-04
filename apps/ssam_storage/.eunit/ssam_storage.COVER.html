@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_storage.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_storage/.eunit/ssam_storage.erl by COVER 2014-10-07 at 16:20:10
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_storage).
+        |  
+        |  -export([configs/0,
+        |  		 routes/0,
+        |  		 post_buckets_key/5,
+        |  		 get_buckets_key/3,
+        |  		 put_buckets_key/5]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_storage.hrl").
+        |  
+        |  
+        |  %% Callback functions
+        |  
+        |  configs() -&gt;
+<font color=red>     0..|  	File = code:priv_dir(ssam_storage) ++ "/conf/ssam_storage.conf",</font>
+<font color=red>     0..|  	case file:consult(File) of</font>
+<font color=red>     0..|  		{ok, Props} -&gt; Props;</font>
+<font color=red>     0..|  		{error, _} -&gt; []</font>
+        |  	end.
+        |  
+        |  routes() -&gt;
+<font color=red>     0..|  	case proplists:get_value(routes, configs()) of</font>
+<font color=red>     0..|  		?undefined -&gt; [];</font>
+<font color=red>     0..|  		Routes -&gt; Routes</font>
+        |  	end.
+        |  
+        |  
+        |  %% Public functions
+        |  
+        |  post_buckets_key(Sid, Bucket, KeyId, Type, Body) -&gt;
+<font color=red>     0..|  	Key = key([Sid, Bucket, KeyId]),</font>
+<font color=red>     0..|  	Doc = {[</font>
+        |  			{&lt;&lt;"id"&gt;&gt;, KeyId},
+        |  			{&lt;&lt;"type"&gt;&gt;, Type},
+        |  			{&lt;&lt;"body"&gt;&gt;, Body},
+        |  			{&lt;&lt;"created"&gt;&gt;, ssam_util:now_sec()}
+        |  		   ]},
+<font color=red>     0..|  	case riak_put(Key, Doc) of</font>
+<font color=red>     0..|  		ok -&gt; {ok, Doc};</font>
+<font color=red>     0..|  		{?error, Reason} -&gt; {?error, Reason}</font>
+        |  	end.
+        |  
+        |  get_buckets_key(Sid, Bucket, KeyId) -&gt;
+<font color=red>     0..|  	Key = key([Sid, Bucket, KeyId]),</font>
+<font color=red>     0..|  	case riak_get(Key) of</font>
+        |  		{ok, DocBin} when is_binary(DocBin) -&gt;
+<font color=red>     0..|  			Doc = binary_to_term(DocBin),</font>
+<font color=red>     0..|  			Type = ssam_objects:value(&lt;&lt;"type"&gt;&gt;, Doc, &lt;&lt;&gt;&gt;),</font>
+<font color=red>     0..|  			Body = ssam_objects:value(&lt;&lt;"body"&gt;&gt;, Doc, &lt;&lt;&gt;&gt;),</font>
+<font color=red>     0..|  			{ok, {Type, Body}};</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			{?error, Reason}</font>
+        |  	end.
+        |  
+        |  put_buckets_key(Sid, Bucket, KeyId, Type, Body) -&gt;
+<font color=red>     0..|  	Key = key([Sid, Bucket, KeyId]),</font>
+<font color=red>     0..|  	Doc = {[</font>
+        |  			{&lt;&lt;"type"&gt;&gt;, Type},
+        |  			{&lt;&lt;"body"&gt;&gt;, Body},
+        |  			{&lt;&lt;"created"&gt;&gt;, ssam_util:now_sec()}
+        |  		   ]},
+<font color=red>     0..|  	case riak_put(Key, Doc) of</font>
+<font color=red>     0..|  		ok -&gt; {ok, Doc};</font>
+<font color=red>     0..|  		{?error, Reason} -&gt; {?error, Reason}</font>
+        |  	end.
+        |  
+        |  
+        |  %% Private functions
+        |  
+<font color=red>     0..|  key(List) -&gt; ssam_util:combined(List).</font>
+        |  
+        |  riak_put(Key, Val) when is_binary(Val) -&gt;
+<font color=red>     0..|  	ssam_riakc:put(?BUCKET_STORAGE_BUCKET, Key, Val);</font>
+        |  riak_put(Key, Val) -&gt;
+<font color=red>     0..|  	ssam_riakc:put(?BUCKET_STORAGE_BUCKET, Key, term_to_binary(Val)).</font>
+        |  
+        |  riak_get(Key) -&gt;
+<font color=red>     0..|  	ssam_riakc:get(?BUCKET_STORAGE_BUCKET, Key).</font>
+        |  
+</pre>
+</body>
+</html>

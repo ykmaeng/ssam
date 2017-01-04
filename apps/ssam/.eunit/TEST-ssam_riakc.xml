@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite tests="2" failures="0" errors="0" skipped="0" time="0.208" name="module 'ssam_riakc'">
+  <testcase time="0.000" name="ssam_riakc:tests/1_0" description="list_buckets"/>
+  <testcase time="0.202" name="ssam_riakc:tests/1_0" description="set_bucket"/>
+</testsuite>

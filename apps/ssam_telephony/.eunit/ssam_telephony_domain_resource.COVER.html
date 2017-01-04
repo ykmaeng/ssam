@@ -1,0 +1,174 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_telephony_domain_resource.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_telephony/.eunit/ssam_telephony_domain_resource.erl by COVER 2014-10-07 at 16:20:12
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_telephony_domain_resource).
+        |  
+        |  %-compile(export_all).
+        |  -export([get/2, post/2, put/2, delete/2]).
+        |  
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_telephony.hrl").
+        |  
+        |  
+        |  %% @todo Reduce the logic of state functions
+        |  
+        |  %% Public functions
+        |  get(#request{
+        |  		uri = [&lt;&lt;"domains"&gt;&gt;],
+        |  		account_sid = Sid
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_telephony:get_domains(Sid) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Doc, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  get(#request{
+        |  	   uri = Uri,
+        |  	   account_sid = Sid
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_resource:get(Sid, ?SERVICE, Uri) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Doc, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end.
+        |  
+        |  post(#request{
+        |  		uri = [&lt;&lt;"domains"&gt;&gt;],
+        |  		account_sid = Sid, body = Params
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_telephony:post_domain(Sid, Params) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(?STATUS_CREATED, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_CONFLICT, Error, Request)}</font>
+        |  	end;
+        |  post(#request{
+        |  		uri = [&lt;&lt;"domains"&gt;&gt;, DomainId, &lt;&lt;"users"&gt;&gt;],
+        |  		account_sid = Sid, body = Params
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_telephony:post_domains_user(Sid, DomainId, Params) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(?STATUS_CREATED, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_CONFLICT, Error, Request)}</font>
+        |  	end;
+        |  post(#request{
+        |  		uri = [&lt;&lt;"domains"&gt;&gt;, DomainId, &lt;&lt;"gateways"&gt;&gt;],
+        |  		account_sid = Sid, body = Params
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_telephony:post_domains_gateway(Sid, DomainId, Params) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(?STATUS_CREATED, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_CONFLICT, Error, Request)}</font>
+        |  	end.
+        |  
+        |  put(#request{
+        |  		uri = [&lt;&lt;"domains"&gt;&gt;, DomainId],
+        |  		account_sid = Sid, body = Params
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_telephony:put_domain(Sid, DomainId, Params) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  put(#request{
+        |  		uri = [&lt;&lt;"domains"&gt;&gt;, DomainId, &lt;&lt;"users"&gt;&gt;, UserId],
+        |  		account_sid = Sid, body = Params
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_telephony:put_domains_user(Sid, DomainId, UserId, Params) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  put(#request{
+        |  		uri = [&lt;&lt;"domains"&gt;&gt;, DomainId, &lt;&lt;"gateways"&gt;&gt;, GatewayId],
+        |  		account_sid = Sid, body = Params
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_telephony:put_domains_gateway(Sid, DomainId, GatewayId, Params) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end.
+        |  
+        |  delete(#request{
+        |  		uri = [&lt;&lt;"domains"&gt;&gt;, _],
+        |  		account_sid = Sid
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_resource:get(Sid, ?SERVICE, Request#request.uri) of</font>
+        |  		{ok, Domain} -&gt;
+<font color=red>     0..|  			Domain1 = ssam_objects:value_replaced(&lt;&lt;"_request"&gt;&gt;, &lt;&lt;"delete"&gt;&gt;, Domain),</font>
+<font color=red>     0..|  			Domain2 = ssam_objects:value_replaced(&lt;&lt;"_status"&gt;&gt;, &lt;&lt;"pending"&gt;&gt;, Domain1),</font>
+<font color=red>     0..|  			case ssam_resource:put(Sid, ?SERVICE, Request#request.uri, Domain2) of</font>
+        |  				{ok, _} -&gt;
+<font color=red>     0..|  					{ok, ssam_rest:response(Request)};</font>
+        |  				{?error, Error} -&gt;
+<font color=red>     0..|  					{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  			end;
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  delete(Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("~p:get -&gt; RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [?MODULE, Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_resource:delete(Request#request.account_sid, ?SERVICE,</font>
+        |  							  Request#request.uri) of
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end.
+        |  
+        |  %% Private functions
+        |  
+</pre>
+</body>
+</html>

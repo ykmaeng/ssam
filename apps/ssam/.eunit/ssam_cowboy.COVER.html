@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_cowboy.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_cowboy.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_cowboy).
+        |  
+        |  -export([
+        |  		 start_protocol/3,
+        |  		 add_routes/1,
+        |  		 delete_routes/0
+        |  		]).
+        |  
+        |  -include("ssam.hrl").
+        |  
+        |  -define(BUCKET, &lt;&lt;"ssam_cowboy"&gt;&gt;).
+        |  -define(KEY, &lt;&lt;"routes"&gt;&gt;).
+        |  
+        |  start_protocol(Protocol, Port, Routes) -&gt;
+<font color=red>     0..|  	Dispatch = cowboy_router:compile(Routes),</font>
+<font color=red>     0..|  	start(Protocol, {Port, Dispatch}).</font>
+        |  
+        |  start(http, {Port, Dispatch}) -&gt;
+<font color=red>     0..|  	{ok, _} = cowboy:start_http(</font>
+        |  				ssam_http, 10, [{port, Port}], [{env, [{dispatch, Dispatch}]}]
+        |  			  );
+        |  start(https, {Port, Dispatch}) -&gt;
+<font color=red>     0..|  	{ok, _} = cowboy:start_https(</font>
+        |  				ssam_https, 10,
+        |  				[{port, Port},
+        |  				 {certfile, code:priv_dir(ssam) ++ "/ssl/unified.crt"},
+        |  				 {keyfile, code:priv_dir(ssam) ++ "/ssl/tellet.io.key"}],
+        |  				[{env, [{dispatch, Dispatch}]}]
+        |  			  ),
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  add_routes(Routes) -&gt;
+<font color=red>     0..|  	lager:debug("Routes: ~p", [Routes]),</font>
+<font color=red>     0..|  	case get_routes() of</font>
+        |  		{ok, OldRoutes} -&gt;
+<font color=red>     0..|  			{ok, NewRoutes} = reduce_routes(OldRoutes ++ Routes),</font>
+<font color=red>     0..|  			ok = set_routes(NewRoutes),</font>
+<font color=red>     0..|  			ok = store_routes(NewRoutes);</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			{?error, Reason}</font>
+        |  	end.
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  get_routes() -&gt;
+<font color=red>     0..|  	case ssam_riakc:get(?BUCKET, ?KEY) of</font>
+<font color=red>     0..|  		{ok, Bin} -&gt; {ok, binary_to_term(Bin)};</font>
+<font color=red>     0..|  		{?error, Reason} -&gt; {?error, Reason}</font>
+        |  	end.
+        |  
+        |  delete_routes() -&gt;
+<font color=red>     0..|  	ok = ssam_riakc:put(?BUCKET, ?KEY, []).</font>
+        |  
+        |  set_routes(Routes) -&gt;
+<font color=red>     0..|  	ok = cowboy:set_env(?ssam_https, dispatch, cowboy_router:compile(Routes)).</font>
+        |  
+        |  store_routes(Routes) -&gt;
+<font color=red>     0..|  	ok = ssam_riakc:put(?BUCKET, ?KEY, term_to_binary(Routes)).</font>
+        |  
+        |  reduce_routes(Routes) -&gt;
+<font color=red>     0..|  	Keys = proplists:get_keys(Routes),</font>
+<font color=red>     0..|  	reduce_routes(Keys, Routes, []).</font>
+        |  
+        |  reduce_routes([Key|Tail], Routes, NewRoutes) -&gt;
+<font color=red>     0..|  	Routes1 = lists:usort(proplists:append_values(Key, Routes)), %% removes duplicates</font>
+<font color=red>     0..|  	Routes2 = proplists:delete(Key, Routes1),</font>
+<font color=red>     0..|  	NewRoutes1 = NewRoutes ++ [{Key, Routes1}],</font>
+<font color=red>     0..|  	reduce_routes(Tail, Routes2, NewRoutes1);</font>
+        |  reduce_routes([], _, Routes) -&gt;
+<font color=red>     0..|  	{ok, Routes}.</font>
+        |  
+        |  
+        |  
+</pre>
+</body>
+</html>

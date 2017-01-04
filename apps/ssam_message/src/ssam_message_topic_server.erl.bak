@@ -1,0 +1,770 @@
+%% ------------------------------------------------------------------------
+%% Copyright (c) 2014, Kook Maeng <kook.maeng@gmail.com>
+%%
+%% Permission to use, copy, modify, and/or distribute this software for any
+%% purpose with or without fee is hereby granted, provided that the above
+%% copyright notice and this permission notice appear in all copies.
+%%
+%% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+%% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+%% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+%% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+%% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+%% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+%% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+%% ------------------------------------------------------------------------
+
+-module(ssam_message_topic_server).
+
+-behaviour(gen_server).
+
+-include_lib("ssam/include/ssam.hrl").
+-include("ssam_message.hrl").
+
+%% APIs
+-export([request/2,
+		 start/1,
+		 stop/2,
+		 get/2,
+		 post/2,
+		 send/1,
+		 put_subscriber/3,
+		 delete_subscriber/2,
+		 delete_client/2,
+		 delete_sent/2,
+		 reload_params/2,
+		 create/2,
+		 destroy/1,
+		 key_encoded/2,
+		 key_decoded/1
+		]).
+
+%% Callbacks
+-export([init/1,
+		 handle_call/3,
+		 handle_cast/2,
+		 handle_info/2,
+		 terminate/2,
+         code_change/3]).
+
+-record(state, {
+		  topic :: ?undefined | record(),
+		  queue :: ?undefined | queue(),
+		  clients = [] :: [] | list(client())
+		 }).
+
+-define(TOPIC_SENDMSG_TIMEOUT, 3*1000).
+
+-define(BUCKET_MESSAGE_TOPIC, <<"ssam_message_topic">>). 
+-define(BUCKET_MESSAGE_TOPIC_SUB, <<?BUCKET_MESSAGE_TOPIC/bits, 1>>). 
+
+%% Public functions
+
+start(TopicKey) ->
+	route(TopicKey, fun(Topic) -> route_to_primary_and_fallbacks(Topic, start) end).
+
+stop(TopicKey, Reason) ->
+	route(TopicKey, fun(Topic) -> route_to_primary_and_fallbacks(Topic, {stop, Reason}) end).
+
+get(TopicKey, ClientPid) ->
+	io:format("~n~nget(), route() call~n"),
+	route(TopicKey, fun(Topic) -> route_to_primary(Topic, {get, ClientPid}) end).
+
+post(TopicKey, Msg) when is_binary(Msg) ->
+	io:format("~n~npost(), route() call!!~n"),
+	route(TopicKey, fun(Topic) -> route_to_primary_and_fallbacks(Topic, {post, Msg}) end);
+post(TopicKey, Msg) ->
+	post(TopicKey, term_to_binary(Msg)).
+
+send(TopicKey) ->
+	route(TopicKey, fun(Topic) -> route_to_primary(Topic, send) end).
+
+reload_params(TopicKey, Params) ->
+	case topic(TopicKey) of
+		?undefined ->
+			{?error, ?topic_not_found};
+		Topic ->
+			set_topic(Topic#topic{params = Params}),
+			route(TopicKey,
+				  fun(Topic1) ->
+					  route_to_primary_and_fallbacks(
+						Topic1, {reload_params, term_to_binary(Params)})
+				  end)
+	end.
+
+delete_client(TopicKey, ClientPid) ->
+	route(TopicKey, fun(Topic) -> route_to_primary(Topic, {delete_client, ClientPid}) end).
+
+delete_sent(TopicKey, LastSent) when is_binary(LastSent) ->
+	route(TopicKey, fun(Topic) -> route_to_fallbacks(Topic, {delete_sent, LastSent}) end);
+delete_sent(TopicKey, LastSent) ->
+	delete_sent(TopicKey, term_to_binary(LastSent)).
+
+put_subscriber(TopicKey, SubId, SubRec) when not is_binary(SubRec) ->
+	route(TopicKey,
+		  fun(Topic) ->
+			  NewSubs = ssam_objects:value_replaced(SubId, SubRec, Topic#topic.subscribers),
+			  Topic1 = Topic#topic{subscribers = NewSubs},
+			  set_topic(Topic1),
+			  route_to_primary_and_fallbacks(
+				Topic1, {put_subscriber, SubId, term_to_binary(SubRec)})
+		  end).
+
+delete_subscriber(TopicKey, all) ->
+	route(TopicKey,
+		  fun(Topic) ->
+			  Topic1 = Topic#topic{subscribers = []},
+			  set_topic(Topic1),
+			  route_to_primary_and_fallbacks(Topic1, {delete_subscriber, all})
+		  end);
+delete_subscriber(TopicKey, SubId) ->
+	route(TopicKey,
+		  fun(Topic) ->
+			  NewSubs = ssam_objects:deleted(SubId, Topic#topic.subscribers),
+			  Topic1 = Topic#topic{subscribers = NewSubs},
+			  set_topic(Topic1),
+			  route_to_primary_and_fallbacks(Topic1, {delete_subscriber, SubId})
+		  end).
+
+create(TopicKey, Params) ->
+	case topic(TopicKey) of
+		?undefined ->
+			{Primary, Fallbacks} = new_nodes(TopicKey),
+			lager:debug("~p:create -> topic(): undefined, TopicKey: ~p, "
+						"Primary: ~p, Fallbacks: ~p",
+						[?MODULE, TopicKey, Primary, Fallbacks]),
+			Topic = #topic{
+						 key = TopicKey,
+						 primary_node = Primary,
+						 fallback_nodes = Fallbacks,
+						 params = Params
+						},
+			set_topic(Topic),
+			start(TopicKey);
+		_Topic ->
+			lager:info("~p:create -> topic_already_exists, TopicKey: ~p",
+					   [?MODULE, TopicKey]),
+			{ok, pid(TopicKey)}
+	end.
+
+
+destroy(TopicKey) ->
+	stop(TopicKey, destroy),
+	lager:info("~p:destroy -> TopicKey: ~p", [?MODULE, TopicKey]).
+
+
+%% Local server call
+
+request(TopicKey, start) ->
+	case topic(TopicKey) of
+		?undefined -> {?error, ?topic_not_found};
+		Topic -> local_start(Topic)
+	end;
+request(TopicKey, Request = {get, _}) ->
+	request(TopicKey, fun(Pid) -> gen_server:cast(Pid, Request) end, {forced_start, true});
+request(TopicKey, Request = {post, _}) ->
+	request(TopicKey, fun(Pid) -> gen_server:cast(Pid, Request) end, {forced_start, true});
+request(TopicKey, Request) ->
+	request(TopicKey, fun(Pid) -> gen_server:cast(Pid, Request) end,
+			{forced_start, false}).
+
+request(TopicKey, Fun, {forced_start, true}) when is_function(Fun) ->
+	case pid(TopicKey) of
+		?undefined ->
+			case local_start(topic(TopicKey)) of
+				{ok, Pid} ->
+					{node(), Fun(Pid)};
+				Error ->
+					lager:error("~p:request -> local_start(): ~p", [?MODULE, Error]),
+					{node(), Error}
+			end;
+		Pid ->
+			{node(), Fun(Pid)}
+	end;
+request(TopicKey, Fun, {forced_start, false}) when is_function(Fun) ->
+	case pid(TopicKey) of
+		?undefined -> {node(), {?error, ?no_pid}};
+		Pid -> {node(), Fun(Pid)}
+	end.
+
+%% Callback functions
+
+init([Topic]) ->
+	{ok, #state{topic = Topic, queue = queue:new()}, ?TOPIC_SERVER_TIMEOUT_MS}.
+
+handle_call(Request, From, State) ->
+	lager:debug("~p:handle_call -> Unknown Request: ~p, From ~p", [?MODULE, Request, From]),
+    {reply, ok, State}.
+
+handle_cast({get, ClientPid}, #state{clients = Clients} = State) ->
+	lager:debug("~p:handle_cast -> get, ClientPid: ~p", [?MODULE, ClientPid]),
+	{ok, Clients1} = add_client(ClientPid, Clients),
+	{ok, State1} = send_msg(State#state{clients = Clients1}),
+    {noreply, State1, ?TOPIC_SERVER_TIMEOUT_MS};
+
+handle_cast({post, MsgBin}, #state{queue = Q} = State) ->
+	Msg = binary_to_term(MsgBin),
+	lager:debug("~p:handle_cast -> post, Msg: ~p", [?MODULE, Msg]),
+	Q1 = queue:in(Msg, Q),
+	{ok, State1} = send_msg(State#state{queue = Q1}),
+	{noreply, State1, ?TOPIC_SERVER_TIMEOUT_MS};
+
+handle_cast(send, State) ->
+	lager:debug("~p:handle_cast -> send", [?MODULE]),
+	{ok, State1} = send_msg(State),
+	{noreply, State1, ?TOPIC_SERVER_TIMEOUT_MS};
+
+handle_cast({put_subscriber, SubId, SubBin}, #state{topic = Topic} = State) ->
+	SubRec = binary_to_term(SubBin),
+	lager:debug("~p:handle_cast -> put_subscriber, SubRec: ~p", [?MODULE, SubRec]),
+	NewSubs = ssam_objects:value_replaced(SubId, SubRec, Topic#topic.subscribers),
+	Topic1 = Topic#topic{subscribers = NewSubs},
+	{noreply, State#state{topic = Topic1}, ?TOPIC_SERVER_TIMEOUT_MS};
+
+handle_cast({delete_subscriber, all}, #state{topic = Topic} = State) ->
+	lager:debug("~p:handle_cast -> delete_subscriber, all", [?MODULE]),
+	Topic1 = Topic#topic{subscribers = []},
+	{noreply, State#state{topic = Topic1}, ?TOPIC_SERVER_TIMEOUT_MS};
+
+handle_cast({delete_subscriber, SubId}, #state{topic = Topic} = State) ->
+	lager:debug("~p:handle_cast -> delete_subscriber, SubId: ~p", [?MODULE, SubId]),
+	NewSubs = ssam_objects:deleted(SubId, Topic#topic.subscribers),
+	Topic1 = Topic#topic{subscribers = NewSubs},
+	{noreply, State#state{topic = Topic1}, ?TOPIC_SERVER_TIMEOUT_MS};
+
+handle_cast({reload_params, ParamsBin}, #state{topic = Topic} = State) ->
+	Params = binary_to_term(ParamsBin),
+	lager:debug("~p:handle_cast -> reload_params, Params: ~p", [?MODULE, Params]),
+	Topic1 = Topic#topic{params = Params},
+	{noreply, State#state{topic = Topic1}, ?TOPIC_SERVER_TIMEOUT_MS};
+
+handle_cast({delete_client, Pid}, #state{clients = Clients} = State) ->
+	lager:debug("~p:handle_cast -> delete_client, Pid: ~p, Clients: ~p",
+				[?MODULE, Pid, Clients]),
+	Clients1 = proplists:delete(Pid, Clients),
+	{noreply, State#state{clients = Clients1}, ?TOPIC_SERVER_TIMEOUT_MS};
+
+handle_cast({delete_sent, LastSent}, #state{queue = Q} = State) ->
+	lager:debug("~p:handle_cast -> delete_sent, LastSent: ~p", [?MODULE, LastSent]),
+	Fun = fun
+		(F, Id, {{value, Msg}, OldQ}, NewQ) ->
+			case (Msg#message.id =:= Id) of
+				true -> {ok, OldQ};
+				false -> 
+					NewQ1 = queue:in(Msg, NewQ),
+					F(F, Id, queue:out(OldQ), NewQ1)
+			end;
+		(_F, _, {empty, _}, NewQ) ->
+			{ok, NewQ}
+	end,
+	{ok, ReducedQ} = Fun(Fun, LastSent, queue:out(Q), queue:new()),
+	{noreply, State#state{queue = ReducedQ}, ?TOPIC_SERVER_TIMEOUT_MS};
+
+handle_cast({stop, destroy}, #state{topic = Topic} = State) ->
+	delete_topic(Topic#topic.key),
+	{stop, {shutdown, destroy}, State};
+handle_cast({stop, Reason}, State) ->
+	lager:debug("~p:handle_cast -> stop", [?MODULE]),	
+	{stop, Reason, State};
+
+handle_cast(Request, State) ->
+	lager:error("~p:handle_cast -> Unknown Request: ~p", [?MODULE, Request]),	
+    {noreply, State}.
+
+handle_info(timeout, #state{topic = Topic, queue = Q, clients = Clients} = State) ->
+	{ok, Q1} = delete_expired_messages(Q, ?TOPIC_MESSAGE_TTL_SEC),
+	{ok, Clients1} = delete_expired_clients(Topic#topic.key, Clients, ?TOPIC_CLIENT_TTL_SEC),
+	case (queue:len(Q1) =:= 0) and (length(Clients1) =:= 0) of
+		true ->
+			lager:info("~p:handle_info -> timeout, stop", [?MODULE]),
+			{stop, {shutdown, timeout}, State#state{queue = Q1, clients = Clients1}};
+		false ->
+			lager:info("~p:handle_info -> timeout, queue: ~p, clients: ~p, wait",
+						[?MODULE, queue:len(Q1), length(Clients1)]),
+			{noreply, State#state{queue = Q1, clients = Clients1}, ?TOPIC_SERVER_TIMEOUT_MS}
+	end;
+
+handle_info(_Msg, State) ->
+	{noreply, State}.
+
+terminate(Reason, #state{topic = Topic}) ->
+	delete_pid(Topic#topic.key),
+	lager:debug("~p:terminate -> ~p, TopicKey: ~p", [?MODULE, Reason, Topic#topic.key]),
+	ok.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
+
+%% Private functions
+
+set_pid(TopicKey, Pid) ->
+	PidKey = key_for_pid(TopicKey),
+	ok = ssam_riakc:put(?BUCKET_MESSAGE_TOPIC, PidKey, Pid),
+	ok = ssam_cache:put(?SERVICE, PidKey, Pid).
+
+delete_pid(TopicKey) ->
+	PidKey = key_for_pid(TopicKey),
+	ok = ssam_riakc:delete(?BUCKET_MESSAGE_TOPIC, PidKey),
+	ok = ssam_cache:delete(?SERVICE, PidKey).
+
+pid(TopicKey) ->
+	PidKey = key_for_pid(TopicKey),
+	CheckedPid = fun(Pid) ->
+		case is_process_alive(Pid) of
+			true -> Pid;
+			false -> ?undefined
+		end
+	end,
+	case ssam_cache:value(?SERVICE, PidKey) of
+		?undefined ->
+			case ssam_riakc:get(?BUCKET_MESSAGE_TOPIC, PidKey) of
+				{ok, PidBin} ->
+					CheckedPid(binary_to_term(PidBin));
+				{?error, ?not_found} ->
+					?undefined;
+				{?error, Reason} ->
+					lager:error("~p:pid -> Reason: ~p, TopicKey: ~p",
+								[?MODULE, Reason, TopicKey]),
+					?undefined
+			end;
+		Pid ->
+			CheckedPid(Pid)
+	end.
+
+key_for_pid(TopicKey) ->
+	<<(term_to_binary(node()))/binary, TopicKey/bits>>.
+
+key_encoded(AccountSid, TopicId) ->
+	term_to_binary({AccountSid, TopicId}).
+
+key_decoded(TopicKey) ->
+	binary_to_term(TopicKey).
+
+new_nodes(TopicKey) ->
+	Primary = new_primary_node(TopicKey),
+	Fallbacks = new_fallback_nodes(Primary, ?TOPIC_FALLBACK_NODE_CNT),
+	lager:debug("~p:new_node -> Primary: ~p, Fallbacks: ~p",
+				[?MODULE, Primary, Fallbacks]),
+	{Primary, Fallbacks}.
+
+new_primary_node(TopicKey) ->
+	DocIdx = riak_core_util:chash_key({?SERVICE, TopicKey}),
+	case riak_core_apl:get_primary_apl(DocIdx, 1, ?RIAK_CORE_RING_NAME) of
+		[] -> node();
+		[{{_, Node}, primary}] -> Node
+	end.
+
+new_fallback_nodes(Primary, Cnt) ->
+	UpNodes = up_nodes(),
+	Fallbacks = idle_nodes([Primary], UpNodes, Cnt),
+	lager:debug("~p:new_fallback_node -> UpNodes: ~p, Fallbacks: ~p",
+				[?MODULE, UpNodes, Fallbacks]),
+	Fallbacks.
+
+up_nodes() ->
+	riak_core_node_watcher:nodes(?RIAK_CORE_RING_NAME).
+
+topic(cache, TopicKey) ->
+	lager:debug("~p:topic -> cache, TopicKey: ~p", [?MODULE, TopicKey]),
+	case ssam_cache:global_get(?SERVICE, TopicKey) of 
+		{ok, Bin} when is_binary(Bin) -> Bin;
+		{?error, Reason} ->
+			lager:warning("~p:topic -> cache, ssam_cache:global_get() error, Reason: ~p",
+						  [?MODULE, Reason]),
+			?undefined
+	end;
+topic(storage, TopicKey) ->
+	lager:debug("~p:topic -> storage, TopicKey: ~p", [?MODULE, TopicKey]),
+	case ssam_riakc:get(?BUCKET_MESSAGE_TOPIC, TopicKey) of
+		{ok, Bin} when is_binary(Bin) -> Bin;
+		{?error, Reason} ->
+			lager:warning("~p:topic -> storage, ssam_riakc:get() error, Reason: ~p",
+						  [?MODULE, Reason]),
+			?undefined	
+	end;
+topic(resource, _TopicKey) ->
+	%% @todo
+	?undefined.
+
+topic(TopicKey) ->
+	lager:debug("~p:topic -> TopicKey: ~p", [?MODULE, TopicKey]),
+	case topic(cache, TopicKey) of
+		?undefined ->
+			case topic(storage, TopicKey) of
+				?undefined ->
+					?undefined;
+				Bin ->
+					set_topic(cache, TopicKey, Bin),
+					binary_to_term(Bin)
+			end;
+		Bin ->
+			binary_to_term(Bin)
+	end.
+
+
+set_topic(cache, TopicKey, Bin) ->
+	ssam_cache:global_put(?SERVICE, TopicKey, Bin);
+set_topic(storage, TopicKey, Bin) ->
+	ssam_riakc:put(?BUCKET_MESSAGE_TOPIC, TopicKey, Bin).
+
+set_topic(Topic) ->
+	TopicKey = Topic#topic.key,
+	Bin = term_to_binary(Topic),
+	set_topic(cache, TopicKey, Bin),
+	set_topic(storage, TopicKey, Bin).
+
+delete_topic(cache, TopicKey) ->
+	ssam_cache:global_delete(?SERVICE, TopicKey);
+delete_topic(storage, TopicKey) ->
+	ssam_riakc:delete(?BUCKET_MESSAGE_TOPIC, TopicKey).
+
+delete_topic(TopicKey) ->
+	delete_topic(storage, TopicKey),
+	delete_topic(cache, TopicKey).
+
+add_client(ClientPid, Clients) when is_pid(ClientPid) ->
+	ClientRec = #client{last_use = ssam_util:now_sec()},
+	NewClients = ssam_objects:value_replaced(ClientPid, ClientRec, Clients),
+	{ok, NewClients}.
+
+send_msg(#state{topic = Topic, queue = Q, clients = Clients} = State) ->
+	io:format("~n~nsend_msg() start~n"),
+	TranCount = ssam_objects:value(<<"tran_count">>,
+								   Topic#topic.params, ?TOPIC_MAX_TRAN_CNT),
+	{ok, NewQ, SendQ} = gather_messages(Q, TranCount),
+	Msgs = queue:to_list(SendQ),
+	Subs = Topic#topic.subscribers,
+	Ref = make_ref(), Pid = self(),
+	case
+		begin
+			io:format("spawn(): start~n"),
+			spawn(fun() ->
+					  case send_msg(subscribers, {Topic#topic.key, Msgs, Subs}) of
+						  ok -> Pid ! {ok, Ref};
+						  Error -> Pid ! {Error, Ref}
+					  end
+				  end),
+			io:format("spawn(): end~n"),
+			SendResult = case send_msg(clients, {Topic#topic.key, Msgs, Clients}) of
+				ok -> ok;
+				_ ->
+					receive
+						{ok, Ref} -> ok;
+						{Error, Ref} -> Error
+					after
+						?TOPIC_SENDMSG_TIMEOUT -> {?error, ?timeout}
+						%100 -> {?error, ?timeout}
+					end
+			end,
+			io:format("sned_msg(): end~n"),
+			SendResult
+		end
+	of
+		ok ->
+			{ok, State#state{queue = NewQ}};
+		{?error, Reason} ->
+			lager:warning("~p:send_msg -> ~p", [?MODULE, Reason]),
+			{ok, State#state{queue = queue:join(SendQ, NewQ)}}
+	end.
+
+
+send_msg(clients, {_, [], _}) -> {?error, ?no_topic_messages};
+send_msg(clients, {_, _, []}) -> {?error, ?no_topic_clients};
+send_msg(clients, {TopicKey, Msgs, Clients}) ->
+	MsgsBin = term_to_binary(Msgs),
+	Ref = make_ref(), Self = self(),
+	[begin
+		 ClientPid ! {updated, TopicKey, MsgsBin, Ref, Self}
+	 end || {ClientPid, _} <- Clients],
+	wait_for_response(Ref, ?TOPIC_SENDMSG_TIMEOUT, length(Clients));
+	%wait_for_response(Ref, 100, length(Clients));
+
+send_msg(subscribers, {_, _, []}) -> {?error, ?no_topic_subscribers};
+send_msg(subscribers, {_, [], _}) -> {?error, ?no_topic_messages};
+send_msg(subscribers, {TopicKey, Msgs, Subs}) ->
+	Ref = make_ref(), ParentPid = self(),
+	F = fun(SubId, SubRec) ->
+		case send_to_subscribers(element(1, SubRec), {TopicKey, Msgs, SubId, SubRec}) of
+			ok -> ParentPid ! {ok, Ref};
+			_ -> ParentPid ! {?error, Ref, SubId} %% @todo error handling
+		end
+	end,
+	[spawn(fun() -> F(SubId, SubRec) end) || {SubId, SubRec} <- Subs],
+	wait_for_response(Ref, ?TOPIC_SENDMSG_TIMEOUT, length(Subs)).
+		
+send_to_subscribers(sub_webhook, {TopicKey, Msgs, SubId, SubRec}) ->
+	Url = SubRec#sub_webhook.callback_url,
+	Type = case SubRec#sub_webhook.content_type of
+		?undefined -> <<"application/json">>;
+		Else -> Else
+	end,
+	{_, TopicId} = key_decoded(TopicKey),
+	Body = msg_encoded(Type, TopicId, Msgs),
+	Header = case SubRec#sub_webhook.secret of
+		?undefined -> [];
+		Secret ->
+			Signature = ssam_util:hmac_sha1(Secret, Body, base64),
+			[{"SSAM-Signature", "sha1=" ++ binary_to_list(Signature)}]
+	end,
+	lager:debug("~p:send_to_subscribers -> sub_webhook, Body: ~p", [?MODULE, Body]),
+	HttpOptions = [{timeout, ?TOPIC_SENDMSG_TIMEOUT}],
+	case ssam_httpc:request(post, {Type, Url, Body, Header, HttpOptions}) of
+		{ok, Code, _Headers, _Body} when Code >= 200, Code < 300 ->
+			lager:debug("~p:send_to_subscribers -> sub_webhook, "
+						"TopicKey: ~p, TopicId: ~p, SubId: ~p, Url: ~p, Type: ~p",
+						[?MODULE, TopicKey, TopicId, SubId, Url, Type]),
+			ok;
+		{?error, Reason} ->
+			lager:warning("~p:send_to_subscribers -> sub_webhook, ~p, SubId: ~p",
+						  [?MODULE, Reason, SubId]),
+			{?error, Reason}
+	end;
+send_to_subscribers(InvalidType, InvalidArg) ->
+	lager:warning("~p:send_to_subscribers -> ~p, ~p",
+				  [?MODULE, InvalidType, InvalidArg]).
+
+wait_for_response(Ref, Timeout, MaxErrCnt) ->
+	wait_for_response(Ref, Timeout, MaxErrCnt, 0, []).
+
+wait_for_response(Ref, Timeout, MaxErrCnt, ErrCnt, Errors) ->
+	receive
+		{ok, Ref} ->
+			ok;
+		{?error, Ref, Id} ->
+			case (ErrCnt + 1) of
+				MaxErrCnt ->
+					{?error, ?no_valid_subscribers};
+				ErrCnt1 ->
+					wait_for_response(Ref, Timeout, MaxErrCnt, ErrCnt1, Errors++[Id])
+			end
+	after Timeout ->
+		{?error, Errors}
+	end.
+		
+msg_encoded(?undefined, TopicId, Msgs) ->
+	msg_encoded(<<"application/json">>, TopicId, Msgs);
+msg_encoded(<<"application/json">>, TopicId, Msgs) ->
+	Body = [{[
+			  {<<"_topic">>, TopicId}, {<<"_id">>, X#message.id}
+			 ] ++ X#message.body} || X <- Msgs],
+	jiffy:encode(Body);
+msg_encoded(<<"application/xml">>, TopicId, Msgs) ->
+	Xml = [{resources,
+			[{resource,
+			  [{topic, binary_to_list(TopicId)}, {id, binary_to_list(X#message.id)}],
+			  [{item,
+				[{name, binary_to_list(K)}],
+				[binary_to_list(V)]
+			   } || {K, V} <- X#message.body]
+			 } || X <- Msgs]
+		   }],
+	Xml1 = xmerl:export_simple(Xml, xmerl_xml,
+							   [{prolog, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"}]),
+	%unicode:characters_to_binary(Xml1).
+	unicode:characters_to_list(Xml1).
+
+gather_messages(Q, Cnt) when is_binary(Cnt) ->
+	gather_messages(Q, binary_to_integer(Cnt));
+gather_messages(Q, Cnt) when is_number(Cnt) ->
+	gather_messages(queue:out(Q), queue:new(), Cnt).
+
+gather_messages({{value, Msg}, Q}, NewQ, Cnt) when Cnt > 0 ->
+	Timestamp = Msg#message.timestamp,
+	case ssam_util:is_expired(Timestamp, ?TOPIC_MESSAGE_TTL_SEC) of
+		true ->
+			gather_messages(queue:out(Q), NewQ, (Cnt-1));
+		false ->
+			NewQ1 = queue:in(Msg, NewQ),
+			gather_messages(queue:out(Q), NewQ1, (Cnt-1))
+	end;
+gather_messages({empty, Q}, NewQ, _) ->
+	{ok, Q, NewQ};
+gather_messages({{value, Msg}, Q}, NewQ, 0) ->
+	Q1 = queue:in_r(Msg, Q),
+	{ok, Q1, NewQ}.
+
+delete_expired_messages(Q, Ttl) ->
+	F = fun(Msg) ->
+		not ssam_util:is_expired(Msg#message.timestamp, Ttl)
+	end,
+	{ok, queue:filter(F, Q)}.
+
+delete_expired_clients(TopicKey, Clients, Ttl) ->
+	F = fun({Pid, Client}) ->	
+		case ssam_util:is_expired(Client#client.last_use, Ttl) of
+			true -> Pid ! {stop, TopicKey}, false;
+			false -> true
+		end
+	end,
+	{ok, lists:filter(F, Clients)}.
+
+idle_nodes([], Nodes, Len) ->
+	lists:sublist(Nodes, Len);
+idle_nodes([Except | Rest], Nodes, Len) ->
+	Fun = fun(Node) -> Node =/= Except end,
+	case lists:splitwith(Fun, Nodes) of
+		{Takes, []} -> idle_nodes(Rest, Takes, Len);
+		{Takes, [_ | Drops]} -> idle_nodes(Rest, Drops++Takes, Len)
+	end.
+
+
+rpc_first([], _, _, _) ->
+	{?error, ?nodes_not_available};
+rpc_first([Node | Rest], Module, Fun, Args) ->
+	lager:debug("~p:rpc_first -> Node: ~p, Rest: ~p", [?MODULE, Node, Rest]),
+	case rpc:multicall([Node], Module, Fun, Args) of
+		{_ResL, []} ->
+			{Node, Rest};
+		{[], _} ->
+			rpc_first(Rest, Module, Fun, Args);
+		{?error, Reason} ->
+			lager:error("~p:rpc_first -> ~p, Node: ~p", [Reason, Node]),
+			{?error, Reason}
+	end.
+
+rpc_all(Nodes, Module, Fun, Args) ->
+	lager:debug("~p:rpc_all -> Nodes: ~p", [?MODULE, Nodes]),
+	rpc:multicall(Nodes, Module, Fun, Args).
+
+
+route(TopicKey, FunRoute) ->
+	case topic(TopicKey) of
+		?undefined ->
+			lager:warning("~p:route -> topic(TopicKey: ~p): undefined", [?MODULE, TopicKey]),
+			{?error, ?topic_not_found};
+		Topic ->
+			Result = FunRoute(Topic),
+			lager:debug("~p:route -> ~p, TopicKey: ~p", [?MODULE, Result, TopicKey]),
+			case Result of
+				{ok, Topic1} -> {ok, Topic1};
+				{?error, ?fallback_nodes_not_available} -> {ok, Topic};
+				{?error, ?fallback_nodes_lack} -> {ok, Topic};
+				{?error, Reason} -> {?error, Reason}
+			end
+	end.
+
+route_to_primary(Topic, Request) ->
+	Primary = Topic#topic.primary_node,
+	Fallbacks = Topic#topic.fallback_nodes,
+	Nodes = [Primary] ++ Fallbacks,
+	case rpc_first(Nodes, ?MODULE, request, [Topic#topic.key, Request]) of
+		{Primary, _} ->
+			{ok, Topic};
+		{?error, ?nodes_not_available} ->
+			case idle_nodes([], up_nodes(), ?TOPIC_FALLBACK_NODE_CNT+1) of
+				[] ->
+					Topic1 = Topic#topic{primary_node = ?undefined, fallback_nodes = []},
+					set_topic(Topic1),
+					{?error, ?nodes_not_available};
+				[H | T] ->
+					rpc_first([H], ?MODULE, request, [Topic#topic.key, Request]),
+					Topic1 = Topic#topic{primary_node = H, fallback_nodes = T},
+					set_topic(Topic1),
+					{ok, Topic1}
+			end;
+		{?error, _} ->
+			{ok, Topic};
+		{Node, Rest} ->
+			Topic1 = Topic#topic{primary_node = Node, fallback_nodes = Rest},
+			set_topic(Topic1),
+			{ok, Topic1}
+	end.
+
+route_to_fallbacks(Topic, Request) ->
+	Fallbacks = Topic#topic.fallback_nodes,
+	case rpc_all(Fallbacks, ?MODULE, request, [Topic#topic.key, Request]) of
+		{ResL, []} when length(ResL) =:= ?TOPIC_FALLBACK_NODE_CNT ->
+			{ok, Topic};
+		{ResL, Bads} when length(ResL) =:= ?TOPIC_FALLBACK_NODE_CNT ->
+			Topic1 = Topic#topic{fallback_nodes = Fallbacks -- Bads},
+			set_topic(Topic1),
+			{ok, Topic1};
+		{ResL, Bads} when length(ResL) < ?TOPIC_FALLBACK_NODE_CNT ->
+			NeedCnt = ?TOPIC_FALLBACK_NODE_CNT - length(ResL),
+			NewFallbacks = Fallbacks -- Bads,
+			case idle_nodes([Topic#topic.primary_node] ++ Fallbacks, up_nodes(), NeedCnt) of
+				[] when ResL =:= [] ->
+					set_topic(Topic#topic{fallback_nodes = NewFallbacks}),
+					{?error, ?fallback_nodes_not_available};
+				[] when length(ResL) > 0 ->
+					set_topic(Topic#topic{fallback_nodes = NewFallbacks}),
+					{?error, ?fallback_nodes_lack};
+				IdleNodes ->
+					rpc_all(IdleNodes, ?MODULE, request, [Topic#topic.key, Request]),
+					Topic1 = Topic#topic{fallback_nodes = NewFallbacks ++ IdleNodes},
+					set_topic(Topic1),
+					{ok, Topic1}
+			end;
+		{ResL, Bads} when length(ResL) > ?TOPIC_FALLBACK_NODE_CNT ->
+			Fallbacks1 = Fallbacks -- Bads,
+			Fallbacks2 = lists:sublist(Fallbacks1, ?TOPIC_FALLBACK_NODE_CNT),
+			Topic1 = Topic#topic{fallback_nodes = Fallbacks2},
+			set_topic(Topic1),
+			{ok, Topic1}
+	end.
+
+route_to_primary_and_fallbacks(Topic, Request) ->
+	case route_to_primary(Topic, Request) of
+		{ok, Topic1} ->
+			lager:debug("~p:route_to_primary_and_fallbacks -> route_to_primary(): ok",
+						[?MODULE]),
+			route_to_fallbacks(Topic1, Request);
+		{?error, Reason} -> 
+			lager:debug("~p:route_to_primary_and_fallbacks -> route_to_primary(): {error, ~p}",
+						[?MODULE, Reason]),
+			route_to_fallbacks(Topic, Request)
+	end.
+
+%route_to_up_nodes(Topic, Request) ->
+	%rpc_all(up_nodes(), ?MODULE, request, [Topic#topic.key, Request]).
+
+local_start(Topic) when is_record(Topic, topic) ->
+	case gen_server:start(?MODULE, [Topic], []) of
+		{ok, Pid} ->
+			lager:debug("~p:start -> ok, TopicKey: ~p, Pid: ~p",
+						[?MODULE, Topic#topic.key, Pid]),
+			set_pid(Topic#topic.key, Pid), {ok, Pid};
+		{?error, {already_started, Pid}} ->
+			lager:debug("~p:start -> already_started, TopicKey: ~p, Pid: ~p",
+						[?MODULE, Topic#topic.key, Pid]),
+			set_pid(Topic#topic.key, Pid), {ok, Pid};
+		{?error, Reason} ->
+			lager:error("~p:start -> ~p, TopicKey: ~p",
+						[?MODULE, Reason, Topic#topic.key]),
+			{?error, Reason};
+		Else ->
+			lager:error("~p:start -> ~p", [?MODULE, Else]),
+			{?error, Else}
+	end;
+local_start(_) ->
+	{?error, ?invalid_topic}.
+
+
+%% Tests
+%%
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+setup_test_() ->
+	{setup,
+		fun() -> ok end,	%% initialize
+		fun(_X) -> ok end,	%% cleanup
+		fun(_X) -> [		%% tests
+			tests(_X)
+		] end
+	}.
+
+tests(_X) ->
+	[
+		{"test",
+			fun() ->
+				undefined
+			end
+		}
+	].
+
+-endif.
+
+
+
+

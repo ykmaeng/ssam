@@ -1,0 +1,61 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message_sup.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message_sup.erl by COVER 2014-10-08 at 11:23:44
+
+****************************************************************************
+
+        |  -module(ssam_message_sup).
+        |  
+        |  -behaviour(supervisor).
+        |  
+        |  %% API
+        |  -export([start_link/0]).
+        |  
+        |  %% Supervisor callbacks
+        |  -export([init/1]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_message.hrl").
+        |  
+        |  %% Helper macro for declaring children of supervisor
+        |  -define(CHILD(I, Type, Args), {I, {I, start_link, Args}, permanent, 5000, Type, [I]}).
+        |  
+        |  %% ===================================================================
+        |  %% API functions
+        |  %% ===================================================================
+        |  
+        |  start_link() -&gt;
+<font color=red>     0..|      supervisor:start_link({local, ?MODULE}, ?MODULE, []).</font>
+        |  
+        |  %% ===================================================================
+        |  %% Supervisor callbacks
+        |  %% ===================================================================
+        |  
+        |  init([]) -&gt;
+<font color=red>     0..|  	TopicManager = ?CHILD(ssam_message_topic_manager, worker, []),</font>
+<font color=red>     0..|  	MsgProviders =</font>
+        |  		case ssam_conf:value(?SERVICE, [providers]) of
+<font color=red>     0..|  			?undefined -&gt; [];</font>
+        |  			Providers -&gt;
+<font color=red>     0..|  				[begin</font>
+<font color=red>     0..|  					 case proplists:get_value(use, Props) of</font>
+        |  						 yes -&gt;
+<font color=red>     0..|  							 Handler = proplists:get_value(handler, Props),</font>
+<font color=red>     0..|  							 ?CHILD(Handler, worker, []);</font>
+<font color=red>     0..|  						 _ -&gt; []</font>
+        |  					 end
+<font color=red>     0..|  				 end || {_Name, Props} &lt;- Providers]</font>
+        |  
+        |  		end,
+<font color=red>     0..|  	Childs = [TopicManager | MsgProviders],</font>
+<font color=red>     0..|  	lager:debug("Childs: ~p", [Childs]),</font>
+<font color=red>     0..|      {ok, { {one_for_one, 5, 10}, lists:flatten(Childs)} }.</font>
+        |  
+</pre>
+</body>
+</html>

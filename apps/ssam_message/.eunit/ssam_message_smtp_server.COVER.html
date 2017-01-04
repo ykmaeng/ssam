@@ -1,0 +1,237 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message_smtp_server.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message_smtp_server.erl by COVER 2014-10-08 at 11:23:44
+
+****************************************************************************
+
+        |  %% @doc A simple example callback module for `gen_smtp_server_session' that also serves as
+        |  %% documentation for the required callback API.
+        |  
+        |  -module(ssam_message_smtp_server).
+        |  %-module(smtp_server_example).
+        |  -behaviour(gen_smtp_server_session).
+        |  
+        |  
+        |  -export([init/4, handle_HELO/2, handle_EHLO/3, handle_MAIL/2, handle_MAIL_extension/2,
+        |  	handle_RCPT/2, handle_RCPT_extension/2, handle_DATA/4, handle_RSET/1, handle_VRFY/2,
+        |  	handle_other/3, handle_AUTH/4, handle_STARTTLS/1, code_change/3, terminate/2]).
+        |  
+        |  -define(RELAY, true).
+        |  
+        |  -record(state,
+        |  	{
+        |  		options = [] :: list()
+        |  	}).
+        |  
+        |  -type(error_message() :: {'error', string(), #state{}}).
+        |  
+        |  %% @doc Initialize the callback module's state for a new session.
+        |  %% The arguments to the function are the SMTP server's hostname (for use in the SMTP anner),
+        |  %% The number of current sessions (eg. so you can do session limiting), the IP address of the
+        |  %% connecting client, and a freeform list of options for the module. The Options are extracted
+        |  %% from the `callbackoptions' parameter passed into the `gen_smtp_server_session' when it was
+        |  %% started.
+        |  %%
+        |  %% If you want to continue the session, return `{ok, Banner, State}' where Banner is the SMTP
+        |  %% banner to send to the client and State is the callback module's state. The State will be passed
+        |  %% to ALL subsequent calls to the callback module, so it can be used to keep track of the SMTP
+        |  %% session. You can also return `{stop, Reason, Message}' where the session will exit with Reason
+        |  %% and send Message to the client.
+        |  -spec init(Hostname :: binary(), SessionCount :: non_neg_integer(), Address :: tuple(), Options :: list()) -&gt; {'ok', string(), #state{}} | {'stop', any(), string()}.
+        |  init(Hostname, SessionCount, Address, Options) -&gt;
+<font color=red>     0..|  	io:format("peer: ~p~n", [Address]),</font>
+<font color=red>     0..|  	case SessionCount &gt; 20 of</font>
+        |  		false -&gt;
+<font color=red>     0..|  			Banner = [Hostname, " ESMTP SSAM_MESSAGE_SMTP_SERVER"],</font>
+<font color=red>     0..|  			State = #state{options = Options},</font>
+<font color=red>     0..|  			{ok, Banner, State};</font>
+        |  		true -&gt;
+<font color=red>     0..|  			io:format("Connection limit exceeded~n"),</font>
+<font color=red>     0..|  			{stop, normal, ["421 ", Hostname, " is too busy to accept mail right now"]}</font>
+        |  	end.
+        |  
+        |  %% @doc Handle the HELO verb from the client. Arguments are the Hostname sent by the client as
+        |  %% part of the HELO and the callback State.
+        |  %%
+        |  %% Return values are `{ok, State}' to simply continue with a new state, `{ok, MessageSize, State}'
+        |  %% to continue with the SMTP session but to impose a maximum message size (which you can determine
+        |  %% , for example, by looking at the IP address passed in to the init function) and the new callback
+        |  %% state. You can reject the HELO by returning `{error, Message, State}' and the Message will be
+        |  %% sent back to the client. The reject message MUST contain the SMTP status code, eg. 554.
+        |  -spec handle_HELO(Hostname :: binary(), State :: #state{}) -&gt; {'ok', pos_integer(), #state{}} | {'ok', #state{}} | error_message().
+        |  handle_HELO(&lt;&lt;"invalid"&gt;&gt;, State) -&gt;
+        |  	% contrived example
+<font color=red>     0..|  	{error, "554 invalid hostname", State};</font>
+        |  handle_HELO(&lt;&lt;"trusted_host"&gt;&gt;, State) -&gt;
+<font color=red>     0..|  	{ok, State}; %% no size limit because we trust them.</font>
+        |  handle_HELO(Hostname, State) -&gt;
+<font color=red>     0..|  	io:format("HELO from ~s~n", [Hostname]),</font>
+<font color=red>     0..|  	{ok, 655360, State}. % 640kb of HELO should be enough for anyone.</font>
+        |  	%If {ok, State} was returned here, we'd use the default 10mb limit
+        |  
+        |  %% @doc Handle the EHLO verb from the client. As with EHLO the hostname is provided as an argument,
+        |  %% but in addition to that the list of ESMTP Extensions enabled in the session is passed. This list
+        |  %% of extensions can be modified by the callback module to add/remove extensions.
+        |  %%
+        |  %% The return values are `{ok, Extensions, State}' where Extensions is the new list of extensions
+        |  %% to use for this session or `{error, Message, State}' where Message is the reject message as
+        |  %% with handle_HELO.
+        |  -spec handle_EHLO(Hostname :: binary(), Extensions :: list(), State :: #state{}) -&gt; {'ok', list(), #state{}} | error_message().
+        |  handle_EHLO(&lt;&lt;"invalid"&gt;&gt;, _Extensions, State) -&gt;
+        |  	% contrived example
+<font color=red>     0..|  	{error, "554 invalid hostname", State};</font>
+        |  handle_EHLO(Hostname, Extensions, State) -&gt;
+<font color=red>     0..|  	io:format("EHLO from ~s~n", [Hostname]),</font>
+        |  	% You can advertise additional extensions, or remove some defaults
+<font color=red>     0..|  	MyExtensions = case proplists:get_value(auth, State#state.options, false) of</font>
+        |  		true -&gt;
+        |  			% auth is enabled, so advertise it
+<font color=red>     0..|  			Extensions ++ [{"AUTH", "PLAIN LOGIN CRAM-MD5"}, {"STARTTLS", true}];</font>
+        |  		false -&gt;
+<font color=red>     0..|  			Extensions</font>
+        |  	end,
+<font color=red>     0..|  	{ok, MyExtensions, State}.</font>
+        |  
+        |  %% @doc Handle the MAIL FROM verb. The From argument is the email address specified by the
+        |  %% MAIL FROM command. Extensions to the MAIL verb are handled by the `handle_MAIL_extension'
+        |  %% function.
+        |  %%
+        |  %% Return values are either `{ok, State}' or `{error, Message, State}' as before.
+        |  -spec handle_MAIL(From :: binary(), State :: #state{}) -&gt; {'ok', #state{}} | error_message().
+        |  handle_MAIL(&lt;&lt;"badguy@blacklist.com"&gt;&gt;, State) -&gt;
+<font color=red>     0..|  	{error, "552 go away", State};</font>
+        |  handle_MAIL(From, State) -&gt;
+<font color=red>     0..|  	io:format("Mail from ~s~n", [From]),</font>
+        |  	% you can accept or reject the FROM address here
+<font color=red>     0..|  	{ok, State}.</font>
+        |  
+        |  %% @doc Handle an extension to the MAIL verb. Return either `{ok, State}' or `error' to reject
+        |  %% the option.
+        |  -spec handle_MAIL_extension(Extension :: binary(), State :: #state{}) -&gt; {'ok', #state{}} | 'error'.
+        |  handle_MAIL_extension(&lt;&lt;"X-SomeExtension"&gt;&gt; = Extension, State) -&gt;
+<font color=red>     0..|  	io:format("Mail from extension ~s~n", [Extension]),</font>
+        |  	% any MAIL extensions can be handled here
+<font color=red>     0..|  	{ok, State};</font>
+        |  handle_MAIL_extension(Extension, _State) -&gt;
+<font color=red>     0..|  	io:format("Unknown MAIL FROM extension ~s~n", [Extension]),</font>
+<font color=red>     0..|  	error.</font>
+        |  
+        |  -spec handle_RCPT(To :: binary(), State :: #state{}) -&gt; {'ok', #state{}} | {'error', string(), #state{}}.
+        |  handle_RCPT(&lt;&lt;"nobody@example.com"&gt;&gt;, State) -&gt;
+<font color=red>     0..|  	{error, "550 No such recipient", State};</font>
+        |  handle_RCPT(To, State) -&gt;
+<font color=red>     0..|  	io:format("Mail to ~s~n", [To]),</font>
+        |  	% you can accept or reject RCPT TO addesses here, one per call
+<font color=red>     0..|  	{ok, State}.</font>
+        |  
+        |  -spec handle_RCPT_extension(Extension :: binary(), State :: #state{}) -&gt; {'ok', #state{}} | 'error'.
+        |  handle_RCPT_extension(&lt;&lt;"X-SomeExtension"&gt;&gt; = Extension, State) -&gt;
+        |  	% any RCPT TO extensions can be handled here
+<font color=red>     0..|  	io:format("Mail to extension ~s~n", [Extension]),</font>
+<font color=red>     0..|  	{ok, State};</font>
+        |  handle_RCPT_extension(Extension, _State) -&gt;
+<font color=red>     0..|  	io:format("Unknown RCPT TO extension ~s~n", [Extension]),</font>
+<font color=red>     0..|  	error.</font>
+        |  
+        |  -spec handle_DATA(From :: binary(), To :: [binary(),...], Data :: binary(), State :: #state{}) -&gt; {'ok', string(), #state{}} | {'error', string(), #state{}}.
+        |  handle_DATA(_From, _To, &lt;&lt;&gt;&gt;, State) -&gt;
+<font color=red>     0..|  	{error, "552 Message too small", State};</font>
+        |  handle_DATA(From, To, Data, State) -&gt;
+        |  	% some kind of unique id
+<font color=red>     0..|  	Reference = lists:flatten([io_lib:format("~2.16.0b", [X]) || &lt;&lt;X&gt;&gt; &lt;= erlang:md5(term_to_binary(erlang:now()))]),</font>
+        |  	% if RELAY is true, then relay email to email address, else send email data to console
+<font color=red>     0..|  	case proplists:get_value(relay, State#state.options, false) of</font>
+<font color=red>     0..|  		true -&gt; relay(From, To, Data);</font>
+        |  		false -&gt;
+<font color=red>     0..|  			io:format("message from ~s to ~p queued as ~s, body length ~p~n", [From, To, Reference, byte_size(Data)]),</font>
+<font color=red>     0..|  			case proplists:get_value(parse, State#state.options, false) of</font>
+<font color=red>     0..|  				false -&gt; ok;</font>
+        |  				true -&gt;
+<font color=red>     0..|  					try mimemail:decode(Data) of</font>
+        |  						_Result -&gt;
+<font color=red>     0..|  							io:format("Message decoded successfully!~n")</font>
+        |  					catch
+        |  						What:Why -&gt;
+<font color=red>     0..|  							io:format("Message decode FAILED with ~p:~p~n", [What, Why]),</font>
+<font color=red>     0..|  							case proplists:get_value(dump, State#state.options, false) of</font>
+<font color=red>     0..|  							false -&gt; ok;</font>
+        |  							true -&gt;
+        |  								%% optionally dump the failed email somewhere for analysis
+<font color=red>     0..|  								File = "dump/"++Reference,</font>
+<font color=red>     0..|  								case filelib:ensure_dir(File) of</font>
+        |  									ok -&gt;
+<font color=red>     0..|  										file:write_file(File, Data);</font>
+        |  									_ -&gt;
+<font color=red>     0..|  										ok</font>
+        |  								end
+        |  							end
+        |  					end
+        |  			end
+        |  	end,
+        |  	% At this point, if we return ok, we've accepted responsibility for the email
+<font color=red>     0..|  	{ok, Reference, State}.</font>
+        |  
+        |  -spec handle_RSET(State :: #state{}) -&gt; #state{}.
+        |  handle_RSET(State) -&gt;
+        |  	% reset any relevant internal state
+<font color=red>     0..|  	State.</font>
+        |  
+        |  -spec handle_VRFY(Address :: binary(), State :: #state{}) -&gt; {'ok', string(), #state{}} | {'error', string(), #state{}}.
+        |  handle_VRFY(&lt;&lt;"someuser"&gt;&gt;, State) -&gt;
+<font color=red>     0..|  	{ok, "someuser@"++smtp_util:guess_FQDN(), State};</font>
+        |  handle_VRFY(_Address, State) -&gt;
+<font color=red>     0..|  	{error, "252 VRFY disabled by policy, just send some mail", State}.</font>
+        |  
+        |  -spec handle_other(Verb :: binary(), Args :: binary(), #state{}) -&gt; {string(), #state{}}.
+        |  handle_other(Verb, _Args, State) -&gt;
+        |  	% You can implement other SMTP verbs here, if you need to
+<font color=red>     0..|  	{["500 Error: command not recognized : '", Verb, "'"], State}.</font>
+        |  
+        |  %% this callback is OPTIONAL
+        |  %% it only gets called if you add AUTH to your ESMTP extensions
+        |  -spec handle_AUTH(Type :: 'login' | 'plain' | 'cram-md5', Username :: binary(), Password :: binary() | {binary(), binary()}, #state{}) -&gt; {'ok', #state{}} | 'error'.
+        |  handle_AUTH(Type, &lt;&lt;"username"&gt;&gt;, &lt;&lt;"PaSSw0rd"&gt;&gt;, State) when Type =:= login; Type =:= plain -&gt;
+<font color=red>     0..|  	{ok, State};</font>
+        |  handle_AUTH('cram-md5', &lt;&lt;"username"&gt;&gt;, {Digest, Seed}, State) -&gt;
+<font color=red>     0..|  	case smtp_util:compute_cram_digest(&lt;&lt;"PaSSw0rd"&gt;&gt;, Seed) of</font>
+        |  		Digest -&gt;
+<font color=red>     0..|  			{ok, State};</font>
+        |  		_ -&gt;
+<font color=red>     0..|  			error</font>
+        |  	end;
+        |  handle_AUTH(_Type, _Username, _Password, _State) -&gt;
+<font color=red>     0..|  	error.</font>
+        |  
+        |  %% this callback is OPTIONAL
+        |  %% it only gets called if you add STARTTLS to your ESMTP extensions
+        |  -spec handle_STARTTLS(#state{}) -&gt; #state{}.
+        |  handle_STARTTLS(State) -&gt;
+<font color=red>     0..|      io:format("TLS Started~n"),</font>
+<font color=red>     0..|      State.</font>
+        |  
+        |  -spec code_change(OldVsn :: any(), State :: #state{}, Extra :: any()) -&gt; {ok, #state{}}.
+        |  code_change(_OldVsn, State, _Extra) -&gt;
+<font color=red>     0..|  	{ok, State}.</font>
+        |  
+        |  -spec terminate(Reason :: any(), State :: #state{}) -&gt; {'ok', any(), #state{}}.
+        |  terminate(Reason, State) -&gt;
+<font color=red>     0..|  	{ok, Reason, State}.</font>
+        |  
+        |  %%% Internal Functions %%%
+        |  
+        |  relay(_, [], _) -&gt;
+<font color=red>     0..|  	ok;</font>
+        |  relay(From, [To|Rest], Data) -&gt;
+        |  	% relay message to email address
+<font color=red>     0..|  	[_User, Host] = string:tokens(To, "@"),</font>
+<font color=red>     0..|  	gen_smtp_client:send({From, [To], erlang:binary_to_list(Data)}, [{relay, Host}]),</font>
+<font color=red>     0..|  	relay(From, Rest, Data).</font>
+        |  
+</pre>
+</body>
+</html>

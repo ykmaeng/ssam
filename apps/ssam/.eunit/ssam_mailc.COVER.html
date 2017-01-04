@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_mailc.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_mailc.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_mailc).
+        |  
+        |  -behaviour(gen_server).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  
+        |  %% Publics
+        |  -export([start_link/1,
+        |  		 send/5]).
+        |  
+        |  %% Callbacks
+        |  -export([init/1,
+        |  		 handle_call/3,
+        |  		 handle_cast/2,
+        |  		 handle_info/2,
+        |  		 terminate/2,
+        |           code_change/3]).
+        |  
+        |  
+        |  -record(state, {
+        |  		profiles = [] :: list(tuple(atom(), record()))
+        |  	}).
+        |  
+        |  -define(invalid_smtp_profile, invalid_smtp_profile).
+        |  
+        |  %% Public functions
+        |  
+        |  start_link(Args) -&gt;
+<font color=red>     0..|      gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).</font>
+        |  
+        |  
+        |  send(Profile, From, To, Subject, Body) -&gt;
+<font color=red>     0..|  	gen_server:call(?MODULE, {send, Profile, From, To, Subject, Body}).</font>
+        |  
+        |  %% Callback functions
+        |  
+        |  init(_Args) -&gt;
+        |  	%process_flag(trap_exit, true),
+<font color=red>     0..|  	case ssam_conf:value(&lt;&lt;"ssam"&gt;&gt;, [mailc, profiles]) of</font>
+        |  		?undefined -&gt;
+<font color=red>     0..|  			{ok, #state{}};</font>
+        |  		Profiles -&gt;
+<font color=red>     0..|  			Profiles1 = converted_profiles(Profiles),</font>
+<font color=red>     0..|  			{ok, #state{profiles = Profiles1}}</font>
+        |  	end.
+        |  
+        |  handle_call({send, ProfileName, From, To, Subject, Body}, _From, State)
+        |    when is_atom(ProfileName) -&gt;
+<font color=red>     0..|  	case proplists:get_value(ProfileName, State#state.profiles) of</font>
+        |  		?undefined -&gt;
+<font color=red>     0..|  			{reply, {?error, ?mail_profile_not_found}, State};</font>
+        |  		Props -&gt;
+<font color=red>     0..|  			Type = proplists:get_value(&lt;&lt;"type"&gt;&gt;, Props),</font>
+<font color=red>     0..|  			Result = send(Type, Props, {From, To, Subject, Body}),</font>
+<font color=red>     0..|  			{reply, Result, State}</font>
+        |  	end;
+        |  handle_call({send, ProfileProps, From, To, Subject, Body}, _From, State)
+        |    when is_list(ProfileProps) -&gt;
+<font color=red>     0..|  	Type = proplists:get_value(&lt;&lt;"type"&gt;&gt;, ProfileProps),</font>
+<font color=red>     0..|  	Result = send(Type, ProfileProps, {From, To, Subject, Body}),</font>
+<font color=red>     0..|  	{reply, Result, State};</font>
+        |  handle_call(_Request, _From, State) -&gt;
+<font color=red>     0..|      {reply, ok, State}.</font>
+        |  
+        |  handle_cast(_Request, State) -&gt;
+<font color=red>     0..|      {noreply, State}.</font>
+        |  
+        |  handle_info(_Msg, State) -&gt;
+<font color=red>     0..|  	{noreply, State}.</font>
+        |  
+        |  terminate(Reason, _State) -&gt;
+<font color=red>     0..|  	lager:warning("Reason: ~p", [Reason]),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  code_change(_OldVsn, State, _Extra) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  converted_profiles(Profiles) -&gt;
+<font color=red>     0..|  	converted_profiles(Profiles, []).</font>
+        |  
+        |  converted_profiles([], Outputs) -&gt;
+<font color=red>     0..|  	Outputs;</font>
+        |  converted_profiles([Profile | Rest], Outputs) -&gt;
+<font color=red>     0..|  	{Name, Props} = Profile,</font>
+<font color=red>     0..|  	Props1 = case proplists:get_value(type, Props) of</font>
+        |  		"smtp" -&gt;
+<font color=red>     0..|  			[{&lt;&lt;"type"&gt;&gt;, &lt;&lt;"smtp"&gt;&gt;},</font>
+        |  			 {&lt;&lt;"relay"&gt;&gt;, list_to_binary(proplists:get_value(relay, Props, ""))},
+        |  			 {&lt;&lt;"port"&gt;&gt;, proplists:get_value(port, Props, 25)}, 
+        |  			 {&lt;&lt;"ssl"&gt;&gt;, proplists:get_value(ssl, Props, false)},
+        |  			 {&lt;&lt;"username"&gt;&gt;, list_to_binary(proplists:get_value(username, Props, ""))},
+        |  			 {&lt;&lt;"password"&gt;&gt;, list_to_binary(proplists:get_value(password, Props, ""))}];
+        |  		"http" -&gt;
+<font color=red>     0..|  			[{&lt;&lt;"type"&gt;&gt;, &lt;&lt;"http"&gt;&gt;},</font>
+        |  			 {&lt;&lt;"url"&gt;&gt;, list_to_binary(proplists:get_value(url, Props, ""))},
+        |  			 {&lt;&lt;"method"&gt;&gt;, list_to_binary(proplists:get_value(method, Props, ""))}];
+        |  		_ -&gt;
+<font color=red>     0..|  			[]</font>
+        |  	end,
+<font color=red>     0..|  	converted_profiles(Rest, Outputs ++ [{Name, Props1}]).</font>
+        |  
+        |  send(&lt;&lt;"smtp"&gt;&gt;, Props, {From, To, Subject, Body}) -&gt;
+<font color=red>     0..|  	{FromName, FromAddr} = From,</font>
+<font color=red>     0..|  	ToAddrs = [Addr || {_, Addr} &lt;- To],</font>
+<font color=red>     0..|  	ToField = lists:foldl(</font>
+        |  				fun({Name, Addr}, Bin) -&gt;
+<font color=red>     0..|  					erlang:iolist_to_binary([Bin, Name, &lt;&lt;" &lt;"&gt;&gt;, Addr, &lt;&lt;"&gt;; "&gt;&gt;])</font>
+        |  				end, &lt;&lt;&gt;&gt;, To),
+<font color=red>     0..|  	Content = erlang:iolist_to_binary([</font>
+        |  			&lt;&lt;"Subject: "&gt;&gt;, Subject, &lt;&lt;"\r\n"&gt;&gt;,
+        |  			&lt;&lt;"From: "&gt;&gt;, FromName, &lt;&lt;" &lt;"&gt;&gt;, FromAddr, &lt;&lt;"&gt; \r\n"&gt;&gt;,
+        |  			&lt;&lt;"To: "&gt;&gt;, ToField, " \r\n\r\n", Body
+        |  		]),
+<font color=red>     0..|  	lager:debug("smtp, Content: ~p", [Content]),</font>
+        |  
+<font color=red>     0..|  	Relay = proplists:get_value(&lt;&lt;"relay"&gt;&gt;, Props),</font>
+<font color=red>     0..|  	Port = proplists:get_value(&lt;&lt;"port"&gt;&gt;, Props, 25),</font>
+<font color=red>     0..|  	SSL = proplists:get_value(&lt;&lt;"ssl"&gt;&gt;, Props, false),</font>
+<font color=red>     0..|  	Username = proplists:get_value(&lt;&lt;"username"&gt;&gt;, Props),</font>
+<font color=red>     0..|  	Password = proplists:get_value(&lt;&lt;"password"&gt;&gt;, Props),</font>
+        |  
+<font color=red>     0..|  	Result = gen_smtp_client:send({FromAddr, ToAddrs, Content},</font>
+        |  								  [{relay, Relay}, {port, Port}, {ssl, SSL},
+        |  								   {username, Username}, {password, Password}]),
+<font color=red>     0..|  	Result.</font>
+        |  	%gen_smtp_client:send({&lt;&lt;"noreply@tellet.io"&gt;&gt;, [&lt;&lt;"ykmaeng@lstro.co.kr"&gt;&gt;, &lt;&lt;"ykmaeng@112.219.64.70"&gt;&gt;], &lt;&lt;"Subject: Welcome to Tellet\r\nFrom: Tellet &lt;noreply@tellet.io&gt; \r\nTo: Lstro Maeng &lt;ykmaeng@lstro.co.kr&gt;; YoungKook Maeng &lt;winfavor@gmail.com&gt; \r\n\r\nThis is the email body"&gt;&gt;}, [{relay, &lt;&lt;"smtp.gmail.com"&gt;&gt;}, {port, 465}, {ssl, true}, {username, &lt;&lt;"noreply.tellet@gmail.com"&gt;&gt;}, {password, &lt;&lt;"pleasedon'tchange!"&gt;&gt;}]).	
+        |  
+        |  
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  setup_test_() -&gt;
+     1..|  	{setup,
+     1..|  		fun() -&gt; ok end,		%% init 
+     1..|  		fun(_X) -&gt; ok end,	%% cleanup
+     1..|  		fun(_X) -&gt; [		%% tests
+        |  			tests(_X)
+        |  		] end
+        |  	}.
+        |  
+        |  tests(_X) -&gt;
+     1..|  	[
+        |  		{"whatever",
+        |  			fun() -&gt;
+     1..|  				undef
+        |  			end
+        |  		}
+        |  	].
+        |  
+        |  -endif.
+        |  
+</pre>
+</body>
+</html>

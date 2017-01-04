@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message_topic_route.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message_topic_route.erl by COVER 2014-10-08 at 11:23:43
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_message_topic_route).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_message.hrl").
+        |  
+        |  
+        |  %% APIs
+        |  -export([dispatch/1]).
+        |  
+        |  
+        |  -define(MODULE_TOPIC_MANAGER, ssam_message_topic_manager).
+        |  
+        |  %% Public functions
+        |  
+        |  dispatch(Request) -&gt;
+<font color=red>     0..|  	_Pid = spawn(fun() -&gt; handle_dispatch(Request) end),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  handle_dispatch(#topic_request{command = ?subscribe} = Request) -&gt;
+<font color=red>     0..|  	lager:debug("subscribe!"),</font>
+<font color=red>     0..|  	state_subscribe(analyze, Request);</font>
+        |  handle_dispatch(#topic_request{command = ?unsubscribe} = Request) -&gt;
+<font color=red>     0..|  	state_unsubscribe(analyze, Request);</font>
+        |  handle_dispatch(#topic_request{command = ?publish} = Request) -&gt;
+<font color=red>     0..|  	state_publish(analyze, Request).</font>
+        |  
+        |  state_subscribe(analyze, #topic_request{topic = Topic} = Request) -&gt;
+<font color=red>     0..|  	case any_wildcard(Topic#topic.parts) of</font>
+        |  		true -&gt;
+<font color=red>     0..|  			state_subscribe(store_subscriber, Request);</font>
+        |  		false -&gt;
+<font color=red>     0..|  			state_subscribe(route_to_primary, Request)</font>
+        |  	end;
+        |  state_subscribe(store_subscriber, Request) -&gt;
+<font color=red>     0..|  	lager:debug("store_subscriber");</font>
+        |  state_subscribe(route_to_primary, Request) -&gt;
+<font color=red>     0..|  	lager:debug("route_to_primary"),</font>
+<font color=red>     0..|  	Res = route_to_primary(Request),</font>
+<font color=red>     0..|  	lager:debug("Res: ~p", [Res]).</font>
+        |  
+        |  
+        |  state_unsubscribe(analyze, #topic_request{topic = Topic} = Request) -&gt;
+<font color=red>     0..|  	case any_wildcard(Topic) of</font>
+        |  		true -&gt;
+<font color=red>     0..|  			state_subscribe(store_subscriber, Request);</font>
+        |  		false -&gt;
+<font color=red>     0..|  			state_subscribe(route_to_primary, Request)</font>
+        |  	end.
+        |  
+        |  state_publish(analyze, #topic_request{topic = Topic} = Request) -&gt;
+<font color=red>     0..|  	case any_wildcard(Topic) of</font>
+        |  		true -&gt;
+<font color=red>     0..|  			state_subscribe(store_subscriber, Request);</font>
+        |  		false -&gt;
+<font color=red>     0..|  			state_subscribe(route_to_primary, Request)</font>
+        |  	end.
+        |  
+        |  
+        |  any_wildcard(TopicParts) -&gt;
+<font color=red>     0..|  	F = fun(&lt;&lt;$+&gt;&gt;) -&gt; true;</font>
+<font color=red>     0..|  		   (&lt;&lt;$#&gt;&gt;) -&gt; true;</font>
+<font color=red>     0..|  		   (_) -&gt; false</font>
+        |  		end,
+<font color=red>     0..|  	lists:any(F, TopicParts).</font>
+        |  
+        |  
+        |  
+        |  rpc_first([], _, _) -&gt;
+<font color=red>     0..|  	{?error, ?nodes_not_available};</font>
+        |  rpc_first([Node | Rest], Name, Msg) -&gt;
+<font color=red>     0..|  	lager:debug("Node: ~p, Rest: ~p", [Node, Rest]),</font>
+<font color=red>     0..|  	case rpc:multi_server_call([Node], Name, Msg) of</font>
+        |  		{[Res], []} -&gt;
+<font color=red>     0..|  			{ok, Res, Rest};</font>
+        |  		{[], _Bads} -&gt;
+<font color=red>     0..|  			rpc_first(Rest, Name, Msg)</font>
+        |  	end.
+        |  
+        |  rpc_all(Nodes, Name, Msg) -&gt;
+<font color=red>     0..|  	lager:debug("~p:rpc_all -&gt; Nodes: ~p", [?MODULE, Nodes]),</font>
+<font color=red>     0..|  	rpc:multi_server_call(Nodes, Name, Msg).</font>
+        |  
+        |  
+        |  route_to_primary(#topic_request{topic = Topic} = Req) -&gt;
+<font color=red>     0..|  	{Primary, Fallbacks} = Topic#topic.path,</font>
+<font color=red>     0..|  	case rpc_first([Primary | Fallbacks], ?MODULE_TOPIC_MANAGER, Req) of</font>
+        |  		{ok, {Primary, Res}, _} -&gt;
+<font color=red>     0..|  			{ok, Res, Req};</font>
+        |  		{ok, {NewPrimary, Res}, Rest} -&gt;
+<font color=red>     0..|  			Topic1 = Topic#topic{path = {NewPrimary, Rest}},</font>
+<font color=red>     0..|  			ssam_message_topic:store(Topic1),</font>
+<font color=red>     0..|  			NewReq = Req#topic_request{topic = Topic1},</font>
+<font color=red>     0..|  			{ok, Res, NewReq};</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			{?error, Reason}</font>
+        |  	end.
+        |  
+        |  route_to_fallbacks(#topic_request{topic = Topic} = Req) -&gt;
+<font color=red>     0..|  	{Primary, Fallbacks} = Topic#topic.path,</font>
+<font color=red>     0..|  	FallbackCnt = Topic#topic.fallback_cnt,</font>
+<font color=red>     0..|  	case rpc_all(Fallbacks, ?MODULE_TOPIC_MANAGER, Req) of</font>
+        |  		{ResL, _Bads} when length(ResL) =:= FallbackCnt -&gt;
+<font color=red>     0..|  			{ok, ResL, Req};</font>
+        |  		{ResL, Bads} -&gt;
+<font color=red>     0..|  			NeedCnt = FallbackCnt - length(ResL),</font>
+<font color=red>     0..|  			NodesExclude = [Primary | Fallbacks],</font>
+<font color=red>     0..|  			case ssam_vnode:idle_nodes(NodesExclude, ssam_vnode:up_nodes(), NeedCnt) of</font>
+        |  				[] when ResL =:= [] -&gt;
+<font color=red>     0..|  					ssam_message_topic:store(</font>
+        |  					  Topic#topic{path = {Primary, (Fallbacks -- Bads)}}),
+<font color=red>     0..|  					{?error, ?fallback_nodes_not_available};</font>
+        |  				[] when length(ResL) &gt; 0 -&gt;
+<font color=red>     0..|  					ssam_message_topic:store(</font>
+        |  					  Topic#topic{path = {Primary, (Fallbacks -- Bads)}}),
+<font color=red>     0..|  					{?error, ?fallback_nodes_lack};</font>
+        |  				IdleNodes -&gt;
+<font color=red>     0..|  					{ResL1, _Bads} = rpc_all(IdleNodes, ?MODULE_TOPIC_MANAGER, Req),</font>
+<font color=red>     0..|  					Topic1 = Topic#topic{path = (Fallbacks -- Bads) ++ IdleNodes},</font>
+<font color=red>     0..|  					ssam_message_topic:store(Topic1),</font>
+<font color=red>     0..|  					NewReq = Req#topic_request{topic = Topic1},</font>
+<font color=red>     0..|  					{ok, ResL1, NewReq}</font>
+        |  			end
+        |  	end.
+        |  
+        |  
+</pre>
+</body>
+</html>

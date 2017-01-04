@@ -1,0 +1,219 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_rest.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_rest.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_rest).
+        |  
+        |  
+        |  -export([
+        |  		 parse_request/1, parse_request/2,
+        |  		 response/1, response/2, response/3,
+        |  		 response_type/3, response_type/4,
+        |  		 body/2,
+        |  		 reply/3,
+        |  		 chunk/2,
+        |  		 chunked_reply/2
+        |  		]).
+        |  
+        |  -include("ssam.hrl").
+        |  
+        |  parse_request(CowboyReq) -&gt;
+<font color=red>     0..|  	parse_request(CowboyReq, [{body, qs}]).</font>
+        |  
+        |  parse_request(CowboyReq, Options) -&gt;
+<font color=red>     0..|  	{Path, _} = cowboy_req:path(CowboyReq),</font>
+<font color=red>     0..|  	[&lt;&lt;&gt;&gt;, Service, Version | Uri] = binary:split(Path, &lt;&lt;"/"&gt;&gt;, [global]),</font>
+<font color=red>     0..|  	{Method, _} = cowboy_req:method(CowboyReq),</font>
+<font color=red>     0..|  	{Params, _} = cowboy_req:qs_vals(CowboyReq),</font>
+<font color=red>     0..|  	{ContentType, _} = cowboy_req:header(&lt;&lt;"content-type"&gt;&gt;, CowboyReq),</font>
+<font color=red>     0..|  	{Cookies, _} = cowboy_req:cookies(CowboyReq),</font>
+<font color=red>     0..|  	{Origin, _} = cowboy_req:header(&lt;&lt;"origin"&gt;&gt;, CowboyReq),</font>
+<font color=red>     0..|  	{Referer, _} = cowboy_req:header(&lt;&lt;"referer"&gt;&gt;, CowboyReq),</font>
+<font color=red>     0..|  	[AccountSid, AuthToken] = parse_account_info(CowboyReq),</font>
+<font color=red>     0..|  	RequestId = ssam_util:unique_id(&lt;&lt;"r"&gt;&gt;),</font>
+<font color=red>     0..|  	State = #request{</font>
+        |  		id = RequestId,
+        |  		account_sid = AccountSid,
+        |  		auth_token = AuthToken,
+        |  		version = Version,
+        |  		service = Service,
+<font color=red>     0..|  		uri = [ssam_httpc:decoded(X) || X &lt;- Uri, X =/= &lt;&lt;&gt;&gt;],</font>
+        |  		path = Path,
+        |  		method = Method,
+        |  		params = Params,
+        |  		body = body(proplists:get_value(body, Options), CowboyReq),
+        |  		content_type = ContentType,
+        |  		origin = Origin,
+        |  		referer = Referer,
+        |  		cookies = Cookies,
+        |  		from = self()
+        |  	},
+<font color=red>     0..|  	{CowboyReq1, State1} = set_resp_header(CowboyReq, State),</font>
+<font color=red>     0..|  	{ok, CowboyReq1, State1}.</font>
+        |  
+        |  set_resp_header(CowboyReq, State) -&gt;
+<font color=red>     0..|  	CowboyReq1 = set_resp_header(request_id, CowboyReq, State#request.id),</font>
+<font color=red>     0..|  	CowboyReq2 = set_resp_header(cors, CowboyReq1, State#request.origin),</font>
+<font color=red>     0..|  	{CowboyReq2, State}.</font>
+        |  
+        |  set_resp_header(request_id, CowboyReq, ReqId) -&gt;
+<font color=red>     0..|  	cowboy_req:set_resp_header(&lt;&lt;"ssam-request-id"&gt;&gt;, ReqId, CowboyReq);</font>
+        |  set_resp_header(cors, CowboyReq, Origin) when is_binary(Origin),
+        |  											  size(Origin) &gt; 0 -&gt;
+<font color=red>     0..|  	CowboyReq1 = cowboy_req:set_resp_header(&lt;&lt;"access-control-allow-origin"&gt;&gt;,</font>
+        |  											Origin, CowboyReq),
+<font color=red>     0..|  	CowboyReq2 = cowboy_req:set_resp_header(&lt;&lt;"access-control-allow-credentials"&gt;&gt;,</font>
+        |  											&lt;&lt;"true"&gt;&gt;, CowboyReq1),
+<font color=red>     0..|  	CowboyReq2;</font>
+        |  set_resp_header(_, CowboyReq, _) -&gt;
+<font color=red>     0..|  	CowboyReq.</font>
+        |  
+        |  
+        |  response(State) -&gt;
+<font color=red>     0..|  	response(?STATUS_OK, &lt;&lt;&gt;&gt;, State).</font>
+        |  
+        |  response(Code, State) when is_number(Code) -&gt;
+<font color=red>     0..|  	response(Code, &lt;&lt;&gt;&gt;, State);</font>
+        |  response(Doc, State) -&gt;
+<font color=red>     0..|  	response(?STATUS_OK, Doc, State).</font>
+        |  
+        |  response(Code, Msg, State) when is_atom(Msg) and Code &lt; 400 -&gt;
+<font color=red>     0..|  	response(Code, {[{&lt;&lt;"message"&gt;&gt;, Msg}]}, State);</font>
+        |  response(Code, Msg, State) when is_atom(Msg) -&gt;
+<font color=red>     0..|  	response(Code, {[{&lt;&lt;"reason"&gt;&gt;, Msg}]}, State);</font>
+        |  response(Code, {Item, Msg}, State) -&gt;
+<font color=red>     0..|  	response(Code, {[{Item, Msg}]}, State);</font>
+        |  response(Code, {Reason, Coll, Id}, State) -&gt;
+<font color=red>     0..|  	Doc = case </font>
+        |  		case {Coll, Id} of
+<font color=red>     0..|  			{[], []} -&gt; &lt;&lt;&gt;&gt;;</font>
+<font color=red>     0..|  			{_, []} -&gt; &lt;&lt;Coll/bits&gt;&gt;;</font>
+<font color=red>     0..|  			{[], _} -&gt; &lt;&lt;Id/bits&gt;&gt;;</font>
+<font color=red>     0..|  			{&lt;&lt;&gt;&gt;, &lt;&lt;&gt;&gt;} -&gt; &lt;&lt;&gt;&gt;;</font>
+<font color=red>     0..|  			{_, &lt;&lt;&gt;&gt;} -&gt; &lt;&lt;Coll/bits&gt;&gt;;</font>
+<font color=red>     0..|  			{&lt;&lt;&gt;&gt;, _} -&gt; &lt;&lt;Id/bits&gt;&gt;;</font>
+<font color=red>     0..|  			_ -&gt;  &lt;&lt;Coll/bits, "/", Id/bits&gt;&gt;</font>
+        |  		end
+        |  	of
+        |  		&lt;&lt;&gt;&gt; -&gt;
+<font color=red>     0..|  			{[{&lt;&lt;"reason"&gt;&gt;, Reason}]};</font>
+        |  		Resource -&gt;
+<font color=red>     0..|  			{[{&lt;&lt;"reason"&gt;&gt;, Reason}, {&lt;&lt;"resource"&gt;&gt;, Resource}]}</font>
+        |  	end,
+<font color=red>     0..|  	response(Code, Doc, State);</font>
+        |  response(Code, Doc, State) -&gt;
+<font color=red>     0..|  	#response{account_sid = State#request.account_sid,</font>
+        |  			  request_id = State#request.id,
+        |  			  code = Code, body = json_body(Code, Doc)}.
+        |  
+        |  response_type(Type, Doc, State) -&gt;
+<font color=red>     0..|  	response_type(Type, ?STATUS_OK, Doc, State).</font>
+        |  
+        |  response_type(Type, Code, Doc, State) -&gt;
+<font color=red>     0..|  	#response{account_sid = State#request.account_sid,</font>
+        |  			  request_id = State#request.id,
+        |  			  content_type = Type, code = Code, body = Doc}.
+        |  
+        |  reply(#response{content_type = Type, code = Code, body = Body, cookies = Cookies},
+        |  	  CowboyReq, State) -&gt;
+<font color=red>     0..|  	Headers = [content_type(Type) | default_headers(State)],</font>
+<font color=red>     0..|  	CowboyReq1 = lists:foldl(fun({K, V, Options}, Req) -&gt;</font>
+<font color=red>     0..|  								 cowboy_req:set_resp_cookie(K, V, Options, Req)</font>
+        |  							 end, CowboyReq, Cookies),
+<font color=red>     0..|  	{ok, CowboyReq2} = cowboy_req:reply(Code, Headers, Body, CowboyReq1),</font>
+<font color=red>     0..|  	{ok, CowboyReq2, State}.</font>
+        |  
+        |  chunked_reply(CowboyReq, State) -&gt;
+<font color=red>     0..|  	Headers = [{&lt;&lt;"content-type"&gt;&gt;, &lt;&lt;"text/event-stream"&gt;&gt;} | default_headers(State)],</font>
+<font color=red>     0..|  	{ok, CowboyReq1} = cowboy_req:chunked_reply(200, Headers, CowboyReq),</font>
+<font color=red>     0..|  	{ok, CowboyReq1, State}.</font>
+        |  
+        |  chunk(#response{body = Body}, CowboyReq) -&gt;
+<font color=red>     0..|  	JsonData = jiffy:encode(Body),</font>
+<font color=red>     0..|  	ok = cowboy_req:chunk(&lt;&lt;"data: ", JsonData/bits, "\n\n"&gt;&gt;, CowboyReq).</font>
+        |  
+        |  %% Private functions
+        |  
+<font color=red>     0..|  content_type(?undefined) -&gt; content_type(?json);</font>
+<font color=red>     0..|  content_type(?json) -&gt; {&lt;&lt;"content-type"&gt;&gt;, &lt;&lt;"application/json"&gt;&gt;};</font>
+<font color=red>     0..|  content_type(?xml) -&gt; {&lt;&lt;"content-type"&gt;&gt;, &lt;&lt;"application/xml"&gt;&gt;};</font>
+<font color=red>     0..|  content_type(?html) -&gt; {&lt;&lt;"content-type"&gt;&gt;, &lt;&lt;"text/html"&gt;&gt;};</font>
+<font color=red>     0..|  content_type(?plain) -&gt; {&lt;&lt;"content-type"&gt;&gt;, &lt;&lt;"text/plain"&gt;&gt;};</font>
+<font color=red>     0..|  content_type(?atom) -&gt; {&lt;&lt;"content-type"&gt;&gt;, &lt;&lt;"application/atom+xml"&gt;&gt;};</font>
+<font color=red>     0..|  content_type(?'form-data') -&gt; {&lt;&lt;"content-type"&gt;&gt;, &lt;&lt;"multipart/form-data"&gt;&gt;};</font>
+<font color=red>     0..|  content_type(?'x-www-form') -&gt; {&lt;&lt;"content-type"&gt;&gt;, &lt;&lt;"application/x-www-form-urlencoded"&gt;&gt;};</font>
+<font color=red>     0..|  content_type(Type) when is_binary(Type) -&gt; {&lt;&lt;"content-type"&gt;&gt;, Type};</font>
+<font color=red>     0..|  content_type({Type, SubType, _Param}) -&gt; {&lt;&lt;"content-type"&gt;&gt;, &lt;&lt;Type/bits, $/, SubType/bits&gt;&gt;}.</font>
+        |  
+        |  parse_account_info(CowboyReq) -&gt;
+<font color=red>     0..|  	{Auth, _} = cowboy_req:header(&lt;&lt;"authorization"&gt;&gt;, CowboyReq, &lt;&lt;&gt;&gt;),</font>
+<font color=red>     0..|  	AuthDecoded = case Auth of</font>
+<font color=red>     0..|  		&lt;&lt;&gt;&gt; -&gt; &lt;&lt;&gt;&gt;;</font>
+        |  		&lt;&lt;"Basic ", Base64/bits&gt;&gt; -&gt;
+<font color=red>     0..|  			base64:mime_decode(Base64);</font>
+        |  		_ -&gt;
+<font color=red>     0..|  			base64:mime_decode(Auth)</font>
+        |  	end,
+<font color=red>     0..|  	case binary:split(AuthDecoded, &lt;&lt;":"&gt;&gt;, [global]) of</font>
+<font color=red>     0..|  		[Sid] -&gt; [Sid, &lt;&lt;&gt;&gt;];</font>
+<font color=red>     0..|  		[Sid, Token] -&gt; [Sid, Token];</font>
+<font color=red>     0..|  		_ -&gt; [&lt;&lt;&gt;&gt;, &lt;&lt;&gt;&gt;]</font>
+        |  	end.
+        |  
+        |  body(qs, CowboyReq) -&gt;
+<font color=red>     0..|  	case cowboy_req:body_qs(CowboyReq) of</font>
+<font color=red>     0..|  		{ok, Props, _} -&gt; Props;</font>
+<font color=red>     0..|  		_ -&gt; &lt;&lt;&gt;&gt;</font>
+        |  	end;
+        |  body(raw, CowboyReq) -&gt;
+<font color=red>     0..|  	case cowboy_req:body(CowboyReq) of</font>
+<font color=red>     0..|  		{ok, Bin, _} -&gt; Bin;</font>
+<font color=red>     0..|  		_ -&gt; &lt;&lt;&gt;&gt;</font>
+        |  	end;
+        |  body(?undefined, _CowboyReq) -&gt;
+<font color=red>     0..|  	?undefined.</font>
+        |  
+        |  default_headers(_State) -&gt;
+<font color=red>     0..|  	[].</font>
+        |  
+        |  
+<font color=red>     0..|  json_body(_, &lt;&lt;&gt;&gt;) -&gt; &lt;&lt;&gt;&gt;;</font>
+        |  json_body(Code, Doc) when Code &lt; 400, is_tuple(Doc) -&gt;
+        |  	%jiffy:encode({[{&lt;&lt;"resource"&gt;&gt;, Doc}]});
+<font color=red>     0..|  	jiffy:encode(Doc);</font>
+        |  json_body(Code, Doc) when Code &lt; 400, is_list(Doc) -&gt;
+        |  	%jiffy:encode({[{&lt;&lt;"resources"&gt;&gt;, Doc}]});
+<font color=red>     0..|  	jiffy:encode(Doc);</font>
+        |  json_body(Code, Doc) when Code &lt; 400, is_binary(Doc) -&gt;
+<font color=red>     0..|  	jiffy:encode({[{&lt;&lt;"message"&gt;&gt;, Doc}]});</font>
+        |  json_body(_, Doc) -&gt;
+<font color=red>     0..|  	jiffy:encode({[{&lt;&lt;"error"&gt;&gt;, Doc}]}).</font>
+        |  
+        |  
+        |  
+</pre>
+</body>
+</html>

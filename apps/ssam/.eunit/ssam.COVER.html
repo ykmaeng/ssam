@@ -1,0 +1,165 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam).
+        |  
+        |  -include("ssam.hrl").
+        |  -include_lib("riak_core/include/riak_core_vnode.hrl").
+        |  
+        |  -export([
+        |  		 start_service/1,
+        |  		 stop_service/1,
+        |  		 restart_service/1,
+        |  		 reload_service/1,
+        |  		 reload_all/0,
+        |  		 configs/0,
+        |  		 routes/0,
+        |           ping/0,
+        |           ping/1,
+        |           ping/2,
+        |           ping/3
+        |          ]).
+        |  
+        |  
+        |  -type account_sid() :: binary().
+        |  -type request_id() :: binary().
+        |  -type ip4_address() :: {0..255, 0..255, 0..255, 0..255}.
+        |  -type timestamp() :: pos_integer().
+        |  -type props() :: list(tuple(atom(), term())).
+        |  
+        |  -export_type([
+        |  			  account_sid/0,
+        |  			  request_id/0,
+        |  			  ip4_address/0,
+        |  			  timestamp/0,
+        |  			  props/0
+        |  			 ]).
+        |  
+        |  
+        |  %% Public API
+        |  
+        |  start_service(Service) -&gt;
+<font color=red>     0..|  	Module = module_name(Service),</font>
+<font color=red>     0..|  	ok = ssam_conf:set(Module, Module:configs()),</font>
+<font color=red>     0..|  	ok = application:start(Module),</font>
+<font color=red>     0..|  	ok = ssam_cowboy:add_routes(Module:routes()).</font>
+        |  
+        |  stop_service(Service) -&gt;
+<font color=red>     0..|  	Module = module_name(Service),</font>
+        |  	%% @todo Remove the service's routes
+        |  	%% ssam_cowboy:remove_routes(Routes),
+<font color=red>     0..|  	application:stop(Module),</font>
+<font color=red>     0..|  	application:unload(Module).</font>
+        |  
+        |  restart_service(Service) -&gt;
+<font color=red>     0..|  	stop_service(Service),</font>
+<font color=red>     0..|  	start_service(Service).</font>
+        |  
+        |  reload_all() -&gt;
+<font color=red>     0..|  	reload_service("").</font>
+        |  
+        |  reload_service(Service) when is_atom(Service) -&gt;
+<font color=red>     0..|  	reload_service(atom_to_list(Service));</font>
+        |  reload_service("ssam_" ++ Service) -&gt;
+<font color=red>     0..|  	reload_service(Service);</font>
+        |  reload_service(Service) when is_list(Service) -&gt;
+<font color=red>     0..|  	F = fun({Mod, Info}) when is_list(Info) -&gt;</font>
+<font color=red>     0..|  			case re:run(Info, "ssam_"++Service++"[_a-zA-Z]*\.beam") of</font>
+        |  				{match, _} -&gt;
+<font color=red>     0..|  					true = code:soft_purge(Mod),</font>
+<font color=red>     0..|  					{true, code:load_file(Mod)};</font>
+        |  				_ -&gt;
+<font color=red>     0..|  					false</font>
+        |  			end;
+        |  		   (_) -&gt;
+<font color=red>     0..|  				false</font>
+        |  		end,
+<font color=red>     0..|  	lists:filtermap(F, code:all_loaded()).</font>
+        |  
+        |  configs() -&gt;
+<font color=red>     0..|  	File = code:priv_dir(ssam) ++ "/conf/ssam.conf",</font>
+<font color=red>     0..|  	{ok, Props} = file:consult(File),</font>
+<font color=red>     0..|  	Props.</font>
+        |  
+        |  routes() -&gt;
+<font color=red>     0..|  	case proplists:get_value(routes, configs()) of</font>
+<font color=red>     0..|  		?undefined -&gt; [];</font>
+<font color=red>     0..|  		Routes -&gt; Routes</font>
+        |  	end.
+        |  	
+        |  
+        |  %% @doc Pings a random vnode to make sure communication is functional
+        |  ping() -&gt;
+<font color=red>     0..|      DocIdx = riak_core_util:chash_key({&lt;&lt;"ping"&gt;&gt;, term_to_binary(now())}),</font>
+<font color=red>     0..|      PrefList = riak_core_apl:get_apl(DocIdx, 1, ssam),</font>
+<font color=red>     0..|  	lager:debug("~p ping() -&gt; get_apl(): ~p", [self(), PrefList]),</font>
+<font color=red>     0..|  	[IndexNode] = PrefList,</font>
+<font color=red>     0..|      riak_core_vnode_master:sync_spawn_command(</font>
+        |  		IndexNode, {&lt;&lt;"test"&gt;&gt;, &lt;&lt;"ping"&gt;&gt;}, ssam_vnode_master).
+        |  
+        |  
+        |  ping(Key, N) -&gt;
+<font color=red>     0..|      DocIdx = riak_core_util:chash_key({&lt;&lt;"ping"&gt;&gt;, Key}),</font>
+<font color=red>     0..|      PrefList = riak_core_apl:get_apl(DocIdx, N, ssam),</font>
+<font color=red>     0..|  	lager:debug("~p ping() -&gt; get_apl(): ~p", [self(), PrefList]),</font>
+<font color=red>     0..|      riak_core_vnode_master:command(PrefList, ping, ssam_vnode_master).</font>
+        |  
+        |  ping(N) -&gt;
+<font color=red>     0..|      DocIdx = riak_core_util:chash_key({&lt;&lt;"ping"&gt;&gt;, term_to_binary(now())}),</font>
+<font color=red>     0..|      PrefList = riak_core_apl:get_apl(DocIdx, N, ssam),</font>
+<font color=red>     0..|  	lager:debug("~p ping() -&gt; get_apl(): ~p", [self(), PrefList]),</font>
+<font color=red>     0..|      riak_core_vnode_master:command(PrefList, ping, ssam_vnode_master).</font>
+        |  
+        |  ping(App, Msg, N) -&gt;
+<font color=red>     0..|      DocIdx = riak_core_util:chash_key({&lt;&lt;"ping"&gt;&gt;, term_to_binary(now())}),</font>
+<font color=red>     0..|      PrefList = riak_core_apl:get_apl(DocIdx, N, ssam),</font>
+<font color=red>     0..|  	lager:debug("~p ping() -&gt; get_apl(): ~p", [self(), PrefList]),</font>
+<font color=red>     0..|  	VnodeMaster = case App of</font>
+<font color=red>     0..|  		admin -&gt; ssam_admin_vnode_master;</font>
+<font color=red>     0..|  		message -&gt; ssam_message_vnode_master;</font>
+<font color=red>     0..|  		telephony -&gt; ssam_telephony_vnode_master;</font>
+<font color=red>     0..|  		storage -&gt; ssam_storage_vnode_master;</font>
+<font color=red>     0..|  		[] -&gt; ssam_vnode_master</font>
+        |  	end,
+<font color=red>     0..|      riak_core_vnode_master:command(PrefList, Msg, VnodeMaster).</font>
+        |  
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  module_name(Service) when is_atom(Service) -&gt;
+<font color=red>     0..|  	module_name(atom_to_list(Service));</font>
+        |  module_name(Service) when is_binary(Service) -&gt;
+<font color=red>     0..|  	module_name(binary_to_list(Service));</font>
+        |  module_name("ssam_"++Service) when is_list(Service) -&gt;
+<font color=red>     0..|  	module_name(Service);</font>
+        |  module_name(Service) when is_list(Service) -&gt;
+<font color=red>     0..|  	list_to_atom("ssam_"++Service).</font>
+        |  
+</pre>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message_topic_resource.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message_topic_resource.erl by COVER 2014-10-08 at 11:23:43
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_message_topic_resource).
+        |  
+        |  %-compile(export_all).
+        |  -export([get/2, post/2, put/2, delete/2]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_message.hrl").
+        |  
+        |  get(#request{
+        |  	   uri = [&lt;&lt;"topics"&gt;&gt;, TopicId, &lt;&lt;"updates"&gt;&gt;],
+        |  	   account_sid = Sid, params = Params
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_message:get_topics_update(</font>
+        |  		   Request#request.id, Sid, TopicId,
+        |  		   [{from, Request#request.from},
+        |  			{cursor, ssam_objects:value(&lt;&lt;"cursor"&gt;&gt;, Params, &lt;&lt;&gt;&gt;)},
+        |  			{last_seq, ssam_objects:value(&lt;&lt;"last_seq"&gt;&gt;, Params, 0)},
+        |  			{count, ssam_objects:value(&lt;&lt;"count"&gt;&gt;, Params, 0)}]
+        |  	) of
+        |  		{ok, TopicKey} -&gt;
+<font color=red>     0..|  			Props = [{topic_key, TopicKey} | Request#request.body],</font>
+<font color=red>     0..|  			Request1 = Request#request{body = Props},</font>
+<font color=red>     0..|  			{ok, Request1};</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			lager:error("~p, TopicId: ~p", [Reason, TopicId]),</font>
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Reason, Request)}</font>
+        |  	end;
+        |  
+        |  get(#request{
+        |  	   uri = [&lt;&lt;"topics"&gt;&gt;],
+        |  	   account_sid = AccountSid
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_message:get_topics(AccountSid) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Doc, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  
+        |  get(#request{
+        |  	   uri = Uri,
+        |  	   account_sid = AccountSid
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_resource:get(AccountSid, ?SERVICE, Uri) of</font>
+        |  		{ok, Doc} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Doc, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end.
+        |  
+        |  post(#request{
+        |  		uri = [&lt;&lt;"topics"&gt;&gt;],
+        |  		account_sid = AccountSid, body = Body
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_message:post_topic(AccountSid, Body) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(?STATUS_CREATED, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_CONFLICT, Error, Request)}</font>
+        |  	end;
+        |  
+        |  post(#request{
+        |  		uri = [&lt;&lt;"topics"&gt;&gt;, TopicId, &lt;&lt;"updates"&gt;&gt;]
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_message:post_topics_update(Request#request.account_sid, TopicId,</font>
+        |  										 Request#request.id, Request#request.body) of
+        |  		ok -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(?STATUS_CREATED, Request)};</font>
+        |  		{?error, Reason} -&gt;
+<font color=red>     0..|  			lager:error("~p, TopicId: ~p", [Reason, TopicId]),</font>
+<font color=red>     0..|  			{ok, ssam_rest:response(?STATUS_CREATED, Request)}</font>
+        |  	end;
+        |  
+        |  post(#request{
+        |  		uri = [&lt;&lt;"topics"&gt;&gt;, TopicId, &lt;&lt;"subscribers"&gt;&gt;]
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_message:post_topics_subscriber(Request#request.account_sid, TopicId,</font>
+        |  									  Request#request.body) of
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(?STATUS_CREATED, Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			lager:warning("~p, TopicId: ~p", [Error, TopicId]),</font>
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_CONFLICT, Error, Request)}</font>
+        |  	end.
+        |  
+        |  
+        |  put(#request{
+        |  		uri = [&lt;&lt;"topics"&gt;&gt;, TopicId]
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	#request{account_sid = AccountSid, body = Params} = Request,</font>
+<font color=red>     0..|  	case ssam_message:put_topic(AccountSid, TopicId, Params) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  
+        |  put(#request{
+        |  		uri = [&lt;&lt;"topics"&gt;&gt;, TopicId, &lt;&lt;"subscribers"&gt;&gt;, SubId],
+        |  		account_sid = AccountSid, body = Params
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_message:put_topics_subscriber(AccountSid, TopicId, SubId, Params) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  
+        |  put(#request{
+        |  		uri = Uri,
+        |  		account_sid = AccountSid, body = Params
+        |  	   } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_resource:put(AccountSid, ?SERVICE, Uri, {Params}) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end.
+        |  
+        |  delete(#request{
+        |  	   uri = [&lt;&lt;"topics"&gt;&gt;],
+        |  	   account_sid = AccountSid
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_message:delete_topics(AccountSid) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  
+        |  delete(#request{
+        |  	   uri = [&lt;&lt;"topics"&gt;&gt;, TopicId],
+        |  	   account_sid = AccountSid
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_message:delete_topic(AccountSid, TopicId) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  
+        |  delete(#request{
+        |  	   uri = [&lt;&lt;"topics"&gt;&gt;, TopicId, &lt;&lt;"subscribers"&gt;&gt;],
+        |  	   account_sid = AccountSid
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_message:delete_topics_subscribers(AccountSid, TopicId) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  
+        |  delete(#request{
+        |  	   uri = [&lt;&lt;"topics"&gt;&gt;, TopicId, &lt;&lt;"subscribers"&gt;&gt;, SubId],
+        |  	   account_sid = AccountSid
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_message:delete_topics_subscriber(AccountSid, TopicId, SubId) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end;
+        |  
+        |  delete(#request{
+        |  	   uri = Uri,
+        |  	   account_sid = AccountSid
+        |  	  } = Request, Sender) -&gt;
+<font color=red>     0..|  	lager:info("RequestId: ~p, Path: ~p, Sender: ~p",</font>
+        |  			   [Request#request.id, Request#request.path, Sender]),
+<font color=red>     0..|  	case ssam_resource:delete(AccountSid, ?SERVICE, Uri) of</font>
+        |  		{ok, _} -&gt;
+<font color=red>     0..|  			{ok, ssam_rest:response(Request)};</font>
+        |  		{?error, Error} -&gt;
+<font color=red>     0..|  			{?error, ssam_rest:response(?STATUS_NOT_FOUND, Error, Request)}</font>
+        |  	end.
+        |  
+        |  
+        |  
+        |  %% Private functions
+        |  
+        |  
+        |  
+        |  
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  -endif.
+</pre>
+</body>
+</html>

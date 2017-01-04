@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_storage_bucket_handler.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_storage/.eunit/ssam_storage_bucket_handler.erl by COVER 2014-10-07 at 16:20:10
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_storage_bucket_handler).
+        |  
+        |  -export([
+        |  		init/3,
+        |  		rest_init/2,
+        |  		is_authorized/2,
+        |  		content_types_provided/2,
+        |  		content_types_accepted/2,
+        |  		allowed_methods/2,
+        |  		malformed_request/2,
+        |  		delete_resource/2,
+        |  		get_resource/2,
+        |  		put_resource/2,
+        |  		post_resource/2
+        |  	]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_storage.hrl").
+        |  
+        |  
+        |  init(_Transport, _Req, []) -&gt;
+<font color=red>     0..|  	{upgrade, protocol, cowboy_rest}.</font>
+        |  
+        |  rest_init(Req, _Options) -&gt;
+<font color=red>     0..|  	{ok, _Req, _State} = ssam_rest:parse_request(Req, []). %% for empty body</font>
+        |  
+        |  is_authorized(Req, State) -&gt;
+<font color=red>     0..|  	ssam_auth:is_authorized(Req, State).</font>
+        |  
+        |  allowed_methods(Req, State) -&gt;
+<font color=red>     0..|  	{[&lt;&lt;"GET"&gt;&gt;, &lt;&lt;"POST"&gt;&gt;, &lt;&lt;"PUT"&gt;&gt;], Req, State}.</font>
+        |  	
+        |  content_types_provided(Req, State) -&gt;
+<font color=red>     0..|  	{[</font>
+        |  		{&lt;&lt;"application/atom+xml"&gt;&gt;, get_resource},
+        |  		{&lt;&lt;"application/xml"&gt;&gt;, get_resource},
+        |  		{&lt;&lt;"application/json"&gt;&gt;, get_resource},
+        |  	    {&lt;&lt;"text/html"&gt;&gt;, get_resource},
+        |  	    {&lt;&lt;"text/plain"&gt;&gt;, get_resource},
+        |  	    {&lt;&lt;"audio/*"&gt;&gt;, get_resource}
+        |  	], Req, State}.
+        |  
+        |  content_types_accepted(Req, State) -&gt;
+<font color=red>     0..|  	Handler = case cowboy_req:method(Req) of</font>
+<font color=red>     0..|  		{&lt;&lt;"PUT"&gt;&gt;, _} -&gt; put_resource;</font>
+<font color=red>     0..|  		{&lt;&lt;"POST"&gt;&gt;, _} -&gt; post_resource;</font>
+<font color=red>     0..|  		{Else, _} -&gt; throw({?error, {?unknown_method, Else}})</font>
+        |  	end,
+<font color=red>     0..|  	{[</font>
+        |  		{&lt;&lt;"application/atom+xml"&gt;&gt;, Handler},
+        |  		{&lt;&lt;"application/xml"&gt;&gt;, Handler},
+        |  		{&lt;&lt;"application/json"&gt;&gt;, Handler},
+        |  	    {&lt;&lt;"text/html"&gt;&gt;, Handler},
+        |  	    {&lt;&lt;"text/plain"&gt;&gt;, Handler},
+        |  	    {&lt;&lt;"autdio/*"&gt;&gt;, Handler}
+        |  	], Req, State}.
+        |  
+        |  malformed_request(Req, State) -&gt;
+<font color=red>     0..|  	{malformed_request(State), Req, State}.</font>
+        |  
+        |  malformed_request(#request{method = &lt;&lt;"GET"&gt;&gt;, uri = Uri}) -&gt;
+<font color=red>     0..|  	case Uri of</font>
+<font color=red>     0..|  		[&lt;&lt;"buckets"&gt;&gt;, _, &lt;&lt;"keys"&gt;&gt;, _] -&gt; false;</font>
+<font color=red>     0..|  		_ -&gt; true</font>
+        |  	end;
+        |  malformed_request(#request{method = &lt;&lt;"POST"&gt;&gt;, uri = Uri}) -&gt;
+<font color=red>     0..|  	case Uri of</font>
+<font color=red>     0..|  		[&lt;&lt;"buckets"&gt;&gt;, _, &lt;&lt;"keys"&gt;&gt;] -&gt; false;</font>
+<font color=red>     0..|  		_ -&gt; true</font>
+        |  	end;
+        |  malformed_request(#request{method = &lt;&lt;"PUT"&gt;&gt;, uri = Uri}) -&gt;
+<font color=red>     0..|  	case Uri of</font>
+<font color=red>     0..|  		[&lt;&lt;"buckets"&gt;&gt;, _, &lt;&lt;"keys"&gt;&gt;, _] -&gt; false;</font>
+<font color=red>     0..|  		_ -&gt; true</font>
+        |  	end;
+        |  malformed_request(_) -&gt;
+<font color=red>     0..|  	false.</font>
+        |  
+        |  get_resource(Req, State) -&gt;
+<font color=red>     0..|  	{_, Response} = ssam_vnode:route(ssam_storage_bucket_resource, get, State#request{}),</font>
+<font color=red>     0..|  	lager:debug("~p:put_resource ~p Response: ~p", [?MODULE, self(), Response]),</font>
+<font color=red>     0..|  	{ok, Req1} = ssam_rest:reply(Response, Req),</font>
+<font color=red>     0..|  	{halt, Req1, State}.</font>
+        |  
+        |  put_resource(Req, State) -&gt;
+<font color=red>     0..|  	{_, Response} = ssam_vnode:route(ssam_storage_bucket_resource, put,</font>
+        |  									 State#request{body = ssam_rest:body(raw, Req)}),
+<font color=red>     0..|  	lager:debug("~p:put_resource ~p Response: ~p", [?MODULE, self(), Response]),</font>
+<font color=red>     0..|  	{ok, Req1} = ssam_rest:reply(Response, Req),</font>
+<font color=red>     0..|  	{halt, Req1, State}.</font>
+        |  
+        |  post_resource(Req, State) -&gt;
+<font color=red>     0..|  	{_, Response} = ssam_vnode:route(ssam_storage_bucket_resource, post,</font>
+        |  									 State#request{body = ssam_rest:body(raw, Req)}),
+<font color=red>     0..|  	lager:debug("~p:post_resource ~p Response: ~p", [?MODULE, self(), Response]),</font>
+<font color=red>     0..|  	{ok, Req1} = ssam_rest:reply(Response, Req),</font>
+<font color=red>     0..|  	{halt, Req1, State}.</font>
+        |  
+        |  delete_resource(Req, State) -&gt;
+<font color=red>     0..|  	{_, Response} = ssam_vnode:route(ssam_storage_bucket_resource, delete, State#request{}),</font>
+<font color=red>     0..|  	lager:debug("~p:delete_resource ~p Response: ~p", [?MODULE, self(), Response]),</font>
+<font color=red>     0..|  	{ok, Req1} = ssam_rest:reply(Response, Req),</font>
+<font color=red>     0..|  	{halt, Req1, State}.</font>
+        |  
+</pre>
+</body>
+</html>

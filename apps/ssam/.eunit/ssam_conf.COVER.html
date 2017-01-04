@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_conf.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam/.eunit/ssam_conf.erl by COVER 2014-10-10 at 15:20:01
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_conf).
+        |  
+        |  -export([set/2,
+        |  		 value/2]).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  
+<font color=red>     0..|  set(_, []) -&gt; ok;</font>
+        |  set(Service, Configs) when is_binary(Service) -&gt;
+<font color=red>     0..|  	ok = delete(Service),</font>
+<font color=red>     0..|  	ok = persist(Service, Configs),</font>
+<font color=red>     0..|  	ok = cache(Service, Configs);</font>
+        |  set(Service, Configs) when is_atom(Service) -&gt;
+<font color=red>     0..|  	set(atom_to_binary(Service, latin1), Configs);</font>
+        |  set(Service, Configs) when is_list(Service) -&gt;
+<font color=red>     0..|  	set(list_to_binary(Service), Configs).</font>
+        |  	
+        |  
+        |  value(Service, Key) when is_binary(Service), not is_list(Key) -&gt;
+<font color=red>     0..|  	value(Service, [Key]);</font>
+        |  value(Service, [Key | Rest]) when is_binary(Service) -&gt; 
+<font color=red>     0..|  	case cached(Service, Key) of</font>
+        |  		?undefined -&gt;
+<font color=red>     0..|  			lager:debug("cached(): undefined, Service: ~p, Key: ~p", [Service, Key]),</font>
+<font color=red>     0..|  			?undefined;</font>
+        |  		Value -&gt;
+<font color=red>     0..|  			value_found(Rest, Value)</font>
+        |  	end;
+        |  value(Service, Key) when is_atom(Service) -&gt;
+<font color=red>     0..|  	value(atom_to_binary(Service, latin1), Key);</font>
+        |  value(Service, Key) when is_list(Service) -&gt;
+<font color=red>     0..|  	value(list_to_binary(Service), Key).</font>
+        |  
+<font color=red>     0..|  value_found([], Value) -&gt; Value;</font>
+        |  value_found([Key | Rest], Props) -&gt;
+<font color=red>     0..|  	case proplists:get_value(Key, Props) of</font>
+<font color=red>     0..|  		?undefined -&gt; ?undefined;</font>
+<font color=red>     0..|  		Value -&gt; value_found(Rest, Value)</font>
+        |  	end.
+        |  
+        |  
+<font color=red>     0..|  cache(_, []) -&gt; ok;</font>
+        |  cache(Service, [{K, V} | Rest]) -&gt;
+<font color=red>     0..|  	ssam_cache:put(Service, conf_key(K), V),</font>
+<font color=red>     0..|  	cache(Service, Rest);</font>
+        |  cache(Service, [Invalid | Rest]) -&gt;
+<font color=red>     0..|  	lager:error("invalid format!, Service: ~p, Data: ~p", [Service, Invalid]),</font>
+<font color=red>     0..|  	cache(Service, Rest).</font>
+        |  
+        |  cached(Service, Key) -&gt;
+<font color=red>     0..|  	ssam_cache:value(Service, conf_key(Key)).</font>
+        |  
+        |  persist(Service, Props) -&gt;
+<font color=red>     0..|  	ok = ssam_riakc:put(&lt;&lt;"ssam_conf"&gt;&gt;, Service, Props).</font>
+        |  
+        |  
+        |  delete(Service) -&gt;
+<font color=red>     0..|  	ssam_cache:delete(Service).</font>
+        |  
+<font color=red>     0..|  conf_key(Key) -&gt; {conf, Key}.</font>
+        |  
+        |  
+        |  
+        |  %% Tests
+        |  
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  
+        |  -endif.
+        |  
+        |  
+</pre>
+</body>
+</html>

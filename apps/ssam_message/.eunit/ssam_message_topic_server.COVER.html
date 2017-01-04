@@ -1,0 +1,461 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>.eunit/ssam_message_topic_server.COVER.html</title>
+</head><body style='background-color: white; color: black'>
+<pre>
+File generated from /Users/xenykr/Documents/project/Tellet/ssam/apps/ssam_message/.eunit/ssam_message_topic_server.erl by COVER 2014-10-08 at 11:23:43
+
+****************************************************************************
+
+        |  %% ------------------------------------------------------------------------
+        |  %% Copyright (c) 2014, Kook Maeng &lt;kook.maeng@gmail.com&gt;
+        |  %%
+        |  %% Permission to use, copy, modify, and/or distribute this software for any
+        |  %% purpose with or without fee is hereby granted, provided that the above
+        |  %% copyright notice and this permission notice appear in all copies.
+        |  %%
+        |  %% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        |  %% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        |  %% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        |  %% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        |  %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        |  %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+        |  %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        |  %% ------------------------------------------------------------------------
+        |  
+        |  -module(ssam_message_topic_server).
+        |  
+        |  -behaviour(gen_server).
+        |  
+        |  -include_lib("ssam/include/ssam.hrl").
+        |  -include("ssam_message.hrl").
+        |  
+        |  %% APIs
+        |  -export([
+        |  		 start_link/2,
+        |  		 stop/2, stop/3,
+        |  		 subscribe/2,
+        |  		 unsubscribe/2,
+        |  		 publish/2,
+        |  		 reload/2,
+        |  		 bytes/2,
+        |  		 length/2,
+        |  		 clean/2,
+        |  		 set_role/3
+        |  		]).
+        |  
+        |  %% Callbacks
+        |  -export([init/1,
+        |  		 handle_call/3,
+        |  		 handle_cast/2,
+        |  		 handle_info/2,
+        |  		 terminate/2,
+        |           code_change/3]).
+        |  
+        |  -record(state, {
+        |  		  topic :: ?undef | #topic{},
+        |  		  role :: ?primary | ?fallback,
+        |  		  msgs = [] :: [] | list(),
+        |  		  last_seq = 0 :: 0 | pos_integer(),
+        |  		  subscriber :: pid(),
+        |  		  dispatcher :: pid()
+        |  		 }).
+        |  
+        |  -define(TOPIC_SENDMSG_TIMEOUT, 3*1000).
+        |  
+        |  -define(BUCKET_MESSAGE_TOPIC, &lt;&lt;"ssam_message_topic"&gt;&gt;). 
+        |  -define(BUCKET_MESSAGE_TOPIC_SUB, &lt;&lt;?BUCKET_MESSAGE_TOPIC/bits, 1&gt;&gt;). 
+        |  -define(BUCKET_MESSAGE_TOPIC_CURSOR, &lt;&lt;?BUCKET_MESSAGE_TOPIC/bits, 2&gt;&gt;). 
+        |  
+        |  
+        |  %% Public functions
+        |  
+        |  start_link(Topic, Role) -&gt;
+<font color=red>     0..|  	gen_server:start_link(?MODULE, [Topic, Role], []).</font>
+        |  
+        |  stop(Server, TopicKey) -&gt;
+<font color=red>     0..|  	stop(Server, TopicKey, normal).</font>
+        |  
+        |  stop(Server, TopicKey, Reason) -&gt;
+<font color=red>     0..|  	gen_server:cast(Server, {stop, TopicKey, Reason}).</font>
+        |  
+        |  subscribe(Server, Req) -&gt;
+     1..|  	Key = Req#topic_request.topic#topic.key,
+     1..|  	gen_server:call(Server, {Key, {subscribe, Req}}).
+        |  
+        |  unsubscribe(Server, Req) -&gt;
+<font color=red>     0..|  	Key = Req#topic_request.topic#topic.key,</font>
+<font color=red>     0..|  	gen_server:call(Server, {Key, {unsubscribe, Req}}).</font>
+        |  
+        |  publish(Server, Req) -&gt;
+<font color=red>     0..|  	Key = Req#topic_request.topic#topic.key,</font>
+<font color=red>     0..|  	gen_server:call(Server, {Key, {publish, Req}}).</font>
+        |  
+        |  reload(Server, Topic) -&gt;
+<font color=red>     0..|  	Key = Topic#topic.key,</font>
+<font color=red>     0..|  	gen_server:call(Server, {Key, {reload, Topic}}).</font>
+        |  
+        |  bytes(Server, TopicKey) -&gt;
+<font color=red>     0..|  	gen_server:call(Server, {TopicKey, bytes}).</font>
+        |  
+        |  length(Server, TopicKey) -&gt;
+<font color=red>     0..|  	gen_server:call(Server, {TopicKey, length}).</font>
+        |  
+        |  clean(Server, TopicKey) -&gt;
+<font color=red>     0..|  	gen_server:call(Server, {TopicKey, clean}).</font>
+        |  
+        |  set_role(Server, TopicKey, Role) -&gt;
+<font color=red>     0..|  	gen_server:call(Server, {TopicKey, {set_role, Role}}).</font>
+        |  
+        |  
+        |  %% Callback functions
+        |  
+        |  init([Topic, Role]) -&gt;
+<font color=red>     0..|  	{Subscriber, Dispatcher} =</font>
+        |  		case Role =:= ?primary of
+        |  			true -&gt;
+<font color=red>     0..|  				{ok, SubPid} = ssam_message_topic_subscriber:start_link(Topic),</font>
+<font color=red>     0..|  				{ok, PubPid} = ssam_message_topic_dispatcher:start_link(Topic),</font>
+<font color=red>     0..|  				{SubPid, PubPid};</font>
+        |  			false -&gt;
+<font color=red>     0..|  				{?undef, ?undef}</font>
+        |  		end,
+<font color=red>     0..|  	{ok, #state{topic = Topic, role = Role, last_seq = 0,</font>
+        |  				subscriber = Subscriber, dispatcher= Dispatcher},
+        |  	 ?TOPIC_SERVER_TIMEOUT}.
+        |  
+        |  handle_call({TopicKey, Req}, From, State)
+        |  	when TopicKey =:= State#state.topic#topic.key -&gt;
+<font color=red>     0..|  	lager:debug("TopicKey: ~p, Req: ~p, From ~p", [TopicKey, Req, From]),</font>
+<font color=red>     0..|  	{Res, State1} = handle_request(Req, From, State),</font>
+<font color=red>     0..|      {reply, Res, State1};</font>
+        |  
+        |  handle_call({TopicKey, _}, From, State) -&gt;
+<font color=red>     0..|  	lager:error("TopicKey not matched! '~p' : '~p', From ~p",</font>
+        |  				[TopicKey, State#state.topic#topic.key, From]),
+<font color=red>     0..|      {reply, {error, ?topic_key_not_matched}, State}.</font>
+        |  
+        |  handle_cast({stop, TopicKey, Reason}, State)
+        |  	when TopicKey =:= State#state.topic#topic.key -&gt;
+<font color=red>     0..|  	{stop, Reason, State};</font>
+        |  
+        |  handle_cast(Unknown, State) -&gt;
+<font color=red>     0..|  	lager:error("Unknown: ~p", [Unknown]),	</font>
+<font color=red>     0..|      {noreply, State}.</font>
+        |  
+        |  handle_info(timeout, State) -&gt;
+<font color=red>     0..|  	ok = purge(),</font>
+<font color=red>     0..|  	case length() of</font>
+        |  		0 -&gt;
+<font color=red>     0..|  			lager:info("~p:handle_info -&gt; timeout, stop", [?MODULE]),</font>
+<font color=red>     0..|  			{stop, {shutdown, timeout}, State};</font>
+        |  		N when N &gt; 0 -&gt;
+<font color=red>     0..|  			{noreply, State, ?TOPIC_SERVER_TIMEOUT}</font>
+        |  	end;
+        |  
+        |  handle_info(_Msg, State) -&gt;
+<font color=red>     0..|  	{noreply, State}.</font>
+        |  
+        |  terminate(Reason, #state{topic = Topic}) -&gt;
+<font color=red>     0..|  	lager:debug("~p, TopicKey: ~p", [Reason, Topic#topic.key]),</font>
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  code_change(_OldVsn, State, _Extra) -&gt;
+<font color=red>     0..|      {ok, State}.</font>
+        |  
+        |  %% Private functions
+        |  
+        |  handle_request({subscribe, Req}, _From, State) -&gt;
+<font color=red>     0..|  	Type = ssam_objects:value(type, Req#topic_request.body),</font>
+<font color=red>     0..|  	{Res, State1} = subscribe(Type, Req, State),</font>
+<font color=red>     0..|  	{reply, Res, State1};</font>
+        |  
+        |  handle_request({publish, Req}, _From, State) -&gt;
+        |  	%{Pub, Extras} = ?props_to_record(Req#topic_request.body, topic_publish),
+        |  	%Pub1 = Pub#topic_publish{extras = Extras},
+<font color=red>     0..|  	Res = state_publish(append, {Req, State}),</font>
+<font color=red>     0..|  	{reply, Res, State};</font>
+        |  
+        |  handle_request({reload, Topic}, _From, State) -&gt;
+<font color=red>     0..|      {reply, ok, State#state{topic = Topic}};</font>
+        |  
+        |  handle_request(bytes, _From, State) -&gt;
+<font color=red>     0..|      {reply, bytes(), State};</font>
+        |  
+        |  handle_request(length, _From, State) -&gt;
+<font color=red>     0..|      {reply, length(), State};</font>
+        |  
+        |  handle_request(clean, _From, State) -&gt;
+<font color=red>     0..|      {reply, clean(), State};</font>
+        |  
+        |  handle_request({set_role, Role}, _From, State) -&gt;
+<font color=red>     0..|  	State1 = State#state{role = Role},</font>
+<font color=red>     0..|      {reply, ok, State1};</font>
+        |  
+        |  handle_request(Unknown, From, State) -&gt;
+<font color=red>     0..|  	lager:error("Unknown: ~p, From: ~p", [Unknown, From]),	</font>
+<font color=red>     0..|      {reply, ok, State}.</font>
+        |  
+        |  subscribe(pid, #topic_request{body = Props} = Req, State) -&gt;
+<font color=red>     0..|  	{Record, Extras} = ?props_to_record(Props, topic_subpid),</font>
+<font color=red>     0..|  	Record1 = Record#topic_subpid{extras = Extras},</font>
+<font color=red>     0..|  	Req1 = Req#topic_request{body = Record1},</font>
+<font color=red>     0..|  	state_subscribe_pid(get, {Req1, State}).</font>
+        |  
+        |  state_subscribe_pid(get, {Req, State}) -&gt;
+<font color=red>     0..|  	Body = Req#topic_request.body,</font>
+<font color=red>     0..|  	Cursor =</font>
+        |  		case Body#topic_subpid.cursor of
+<font color=red>     0..|  			?undef -&gt; ?undef;</font>
+<font color=red>     0..|  			Name -&gt; ssam_message_topic_cursor:cursor(</font>
+        |  					  State#state.topic#topic.key, Name)
+        |  		end,
+<font color=red>     0..|  	LastSeq = Body#topic_subpid.last_seq,</font>
+<font color=red>     0..|  	Count = Body#topic_subpid.count,</font>
+<font color=red>     0..|  	Res = get(Cursor, LastSeq, Count, State),</font>
+<font color=red>     0..|  	state_subscribe_pid(Res, {Req, State});</font>
+        |  state_subscribe_pid(none, {_Req, State}) -&gt;
+<font color=red>     0..|  	{ok, State};</font>
+        |  state_subscribe_pid(wait, {Req, State}) -&gt;
+<font color=red>     0..|  	Server = State#state.subscriber,</font>
+<font color=red>     0..|  	ok = ssam_message_topic_subscriber:add(Server, Req),</font>
+<font color=red>     0..|  	{ok, State};</font>
+        |  state_subscribe_pid({ok, Msgs}, {Req, State}) -&gt;
+<font color=red>     0..|  	Dispatcher = State#state.dispatcher,</font>
+<font color=red>     0..|  	Body = Req#topic_request.body,</font>
+<font color=red>     0..|  	Targets = [Body#topic_subpid.from],</font>
+<font color=red>     0..|  	ok = ssam_message_topic_dispatcher:send(Dispatcher, Msgs, Targets),</font>
+        |  		   %State#state.topic, Msgs, State),
+<font color=red>     0..|  	{ok, State}.</font>
+        |  
+        |  state_publish(append, {Req, State}) -&gt;
+<font color=red>     0..|  	Msg =</font>
+        |  		#topic_message{
+        |  		   topic_key = State#state.topic#topic.key,
+        |  		   seq = State#state.last_seq + 1,
+        |  		   msg_id = Req#topic_request.id,
+        |  		   msg_body = Req#topic_request.body,
+        |  		   timestamp = Req#topic_request.timestamp
+        |  		},
+<font color=red>     0..|  	Msgs = [Msg | State#state.msgs],</font>
+<font color=red>     0..|  	Req1 = Req#topic_request{body = Msg},</font>
+<font color=red>     0..|  	State1 = State#state{msgs = Msgs},</font>
+<font color=red>     0..|  	state_publish(send, {Req1, State1});</font>
+        |  state_publish(send, {Req, State}) -&gt;
+<font color=red>     0..|  	Dispatcher = State#state.dispatcher,</font>
+<font color=red>     0..|  	Res = ssam_message_topic_diapatcher:request(Dispatcher, Req),</font>
+<font color=red>     0..|  	{Res, State}.</font>
+        |  
+        |  get(?undef, 0, 0, _State) -&gt;
+<font color=red>     0..|  	wait;</font>
+        |  get(Cursor, 0, 0, State) -&gt;
+<font color=red>     0..|  	case Cursor#topic_cursor.last_seq of</font>
+<font color=red>     0..|  		0 -&gt; wait;</font>
+<font color=red>     0..|  		LastSeq -&gt; get(Cursor, LastSeq, 0, State)</font>
+        |  	end;
+        |  get(?undef, LastSeq, 0, State) when LastSeq &gt; 0 -&gt;
+<font color=red>     0..|  	case State#state.last_seq of</font>
+<font color=red>     0..|  		LastSeq -&gt; wait;</font>
+<font color=red>     0..|  		N when LastSeq &gt; N -&gt; none;</font>
+        |  		N when LastSeq &lt; N -&gt;
+<font color=red>     0..|  			case select(LastSeq, 1, State#state.msgs) of</font>
+<font color=red>     0..|  				[] -&gt; none;</font>
+<font color=red>     0..|  				Msgs -&gt; {ok, Msgs}</font>
+        |  			end
+        |  	end;
+        |  get(?undef, 0, Count, State) when Count &gt; 0 -&gt;
+<font color=red>     0..|  	Msgs = select(0, Count, State#state.msgs),</font>
+<font color=red>     0..|  	{ok, Msgs};</font>
+        |  get(Cursor, LastSeq, 0, State) when LastSeq &gt; 0 -&gt;
+<font color=red>     0..|  	get(Cursor, LastSeq, 1, State);</font>
+        |  get(Cursor, 0, Count, State) -&gt;
+<font color=red>     0..|  	LastSeq = Cursor#topic_cursor.last_seq,</font>
+<font color=red>     0..|  	case State#state.last_seq of</font>
+<font color=red>     0..|  		LastSeq -&gt; wait;</font>
+<font color=red>     0..|  		N when LastSeq &gt; N -&gt; none;</font>
+        |  		N when LastSeq &lt; N -&gt;
+<font color=red>     0..|  			case select(LastSeq, Count, State#state.msgs) of</font>
+<font color=red>     0..|  				[] -&gt; none;</font>
+        |  				[Head | Rest] -&gt;
+<font color=red>     0..|  					Seq = Head#topic_message.seq,</font>
+<font color=red>     0..|  					ssam_message_topic_cursor:update(Cursor#topic_cursor{last_seq = Seq}),</font>
+<font color=red>     0..|  					{ok, [Head | Rest]}</font>
+        |  			end
+        |  	end;
+        |  get(?undef, LastSeq, Count, State) when LastSeq &gt; 0, Count &gt; 0 -&gt;
+<font color=red>     0..|  	case select(LastSeq, Count, State#state.msgs) of</font>
+<font color=red>     0..|  		[] -&gt; none;</font>
+<font color=red>     0..|  		Msgs -&gt; {ok, Msgs}</font>
+        |  	end;
+        |  get(Cursor, LastSeq, Count, State) when LastSeq &gt; 0, Count &gt; 0 -&gt;
+<font color=red>     0..|  	case Cursor#topic_cursor.last_seq =:= LastSeq of</font>
+        |  		true -&gt;
+<font color=red>     0..|  			case select(LastSeq, Count, State#state.msgs) of</font>
+<font color=red>     0..|  				[] -&gt; none;</font>
+        |  				[Head | Rest] -&gt;
+<font color=red>     0..|  					Seq = Head#topic_message.seq,</font>
+<font color=red>     0..|  					ssam_message_topic_cursor:update(Cursor#topic_cursor{last_seq = Seq}),</font>
+<font color=red>     0..|  					{ok, [Head | Rest]}</font>
+        |  			end;
+        |  		false -&gt;
+<font color=red>     0..|  			case State#state.last_seq of</font>
+        |  				LastSeq -&gt;
+<font color=red>     0..|  					Cursor1 = Cursor#topic_cursor{last_seq = LastSeq},</font>
+<font color=red>     0..|  					ssam_message_topic_cursor:update(Cursor1),</font>
+<font color=red>     0..|  					wait;</font>
+<font color=red>     0..|  				N when LastSeq &gt; N -&gt; none;</font>
+        |  				N when LastSeq &lt; N -&gt;
+<font color=red>     0..|  					case select(LastSeq, 1, State#state.msgs) of</font>
+        |  						[] -&gt;
+<font color=red>     0..|  							ssam_message_topic_cursor:update(</font>
+        |  							  Cursor#topic_cursor{last_seq = LastSeq}),
+<font color=red>     0..|  							none;</font>
+        |  						[Head | Rest] -&gt;
+<font color=red>     0..|  							Seq = Head#topic_message.seq,</font>
+<font color=red>     0..|  							ssam_message_topic_cursor:update(</font>
+        |  							  Cursor#topic_cursor{last_seq = Seq}),
+<font color=red>     0..|  							{ok, [Head | Rest]}</font>
+        |  					end
+        |  			end
+        |  	end.
+        |  
+        |  
+        |  select(0, Count, L) when Count &gt; 0 -&gt;
+     3..|  	lists:sublist(L, 1, Count);
+        |  select(LastSeq, Count, L) when LastSeq &gt;= 0, Count &gt;= 0 -&gt;
+     4..|  	L2 = lists:takewhile(fun(Msg) -&gt; Msg#topic_message.seq &gt; LastSeq end, L),
+     4..|  	case (length(L2) - Count) of
+     1..|  		N when N &lt; 0 -&gt; lists:nthtail(0, L2);
+     3..|  		N -&gt; lists:nthtail(N, L2)
+        |  	end;
+        |  select(_, _, _) -&gt;
+     3..|  	[].
+        |  
+        |  
+        |  purge() -&gt;
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  
+        |  bytes() -&gt;
+<font color=red>     0..|  	0.</font>
+        |  
+        |  length() -&gt;
+<font color=red>     0..|  	0.</font>
+        |  
+        |  clean() -&gt;
+<font color=red>     0..|  	ok.</font>
+        |  
+        |  
+        |  
+        |  
+        |  
+        |  
+        |  %% Tests
+        |  %%
+        |  -ifdef(TEST).
+        |  -include_lib("eunit/include/eunit.hrl").
+        |  
+        |  -record(test, {a :: term(), b :: term()}).
+        |  
+        |  start_server() -&gt;
+<font color=red>     0..|  	Topic = #topic{key = &lt;&lt;"topic"&gt;&gt;},</font>
+<font color=red>     0..|  	{ok, Pid} = ?MODULE:start_link(Topic),</font>
+<font color=red>     0..|  	{Pid, Topic}.</font>
+        |  	
+        |  setup_test_() -&gt;
+     1..|  	{setup,
+        |  		fun() -&gt;
+     1..|  			ok = application:set_env(ssam, riakc,
+        |  									 [{host, "127.0.0.1" }, {port, 8087 }]),
+     1..|  			ssam_riakc:start_link(),
+     1..|  			ssam_cache:start_link()
+        |  		end,
+     1..|  		fun(_X) -&gt; ok end,	%% cleanup
+     1..|  		fun(_X) -&gt; [		%% tests
+        |  			record_tests(),
+        |  			message_tests()
+        |  			%server_tests()
+        |  		] end
+        |  	}.
+        |  
+        |  record_tests() -&gt;
+     1..|  	[
+        |  		{"record_to_props",
+        |  		 fun() -&gt;
+     1..|  			Test = #test{a = 1},
+     1..|  			Props = [{a, 1}, {b, undefined}] ,
+     1..|  			Props = ?record_to_props(Test, test)
+        |  		 end
+        |  		},
+        |  		{"props_to_record",
+        |  		 fun() -&gt;
+     1..|  			Test = #test{a = 1},
+     1..|  			Props = [{a, 1}, {b, undefined}],
+     1..|  			{Test, []}= ?props_to_record(Props, test),
+     1..|  			Props1 = [{c, 1} | Props],
+     1..|  			{Test, [{c, 1}]}= ?props_to_record(Props1, test)
+        |  		 end
+        |  		}
+        |  	].
+        |  
+        |  message_tests() -&gt;
+     1..|  	[
+        |  		{"select",
+        |  		 fun() -&gt;
+     1..|  				 SampleMsgs =
+        |  					 fun(Cnt) -&gt;
+     1..|  						 lists:reverse([#topic_message{seq = N, msg_id = N, msg_body = N}
+     1..|  										|| N &lt;- lists:seq(1, Cnt)])
+        |  					 end,
+     1..|  				 L = SampleMsgs(10),
+     1..|  				 [] = select(0, 0, L),
+     1..|  				 [] = select(1000, 0, L),
+     1..|  				 [] = select(1000, 1000, L),
+     1..|  				 [] = select(0, -100, L),
+     1..|  				 [] = select(-100, 0, L),
+     1..|  				 [] = select(-100, -100, L),
+     1..|  				 [] = select(0, 1, []),
+     1..|  				 [#topic_message{seq = 10}] = select(0, 1, L),
+     1..|  				 [#topic_message{seq = 2}] = select(1, 1, L),
+     1..|  				 L = select(0, 1000, L)
+        |  		 end
+        |  		}
+        |  	].
+        |  
+        |  
+        |  server_tests() -&gt;
+<font color=red>     0..|  	[</font>
+        |  		{"subscribe",
+        |  		 fun() -&gt;
+<font color=red>     0..|  				 Req =</font>
+        |  					fun(Topic, LastSeq, Count) -&gt;
+<font color=red>     0..|  						 #topic_request{</font>
+        |  							id = &lt;&lt;"request_id"&gt;&gt;,
+        |  							account_sid = &lt;&lt;"account_sid"&gt;&gt;,
+        |  							command = ?subscribe,
+        |  							topic = Topic,
+        |  							body = [{type, pid},
+        |  									 {cursor, &lt;&lt;"cursor_name"&gt;&gt;},
+        |  									 {last_seq, LastSeq},
+        |  									 {count, Count},
+        |  									 {stream, no},
+        |  									 {from, self()}
+        |  									]
+        |  						   }
+        |  					end,
+<font color=red>     0..|  				{Pid, Topic} = start_server(),</font>
+<font color=red>     0..|  				none = ?MODULE:subscribe(Pid, Req(Topic, 0, 1))</font>
+        |  		 end
+        |  		}
+        |  	].
+        |  
+        |  -endif.
+        |  
+        |  
+        |  
+        |  
+</pre>
+</body>
+</html>
